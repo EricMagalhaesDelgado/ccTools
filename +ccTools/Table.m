@@ -410,7 +410,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         fSentence = '';
                         fValid    = true;
                     else
-                        [fTable, fIndex, fTableParser, fSentence, fValid] = ccTools.fcn.ccTableFilter(comp.Data, comp.PromptEntry.Data);
+                        [fTable, fIndex, fTableParser, fSentence, fValid] = ccTools.fcn.TableFilter(comp.Data, comp.PromptEntry.Data);
 
                         fPrecision = fTableParser(strcmp(fTableParser.Operation, 'PRECISION'),:);
                         for ii = 1:height(fPrecision)

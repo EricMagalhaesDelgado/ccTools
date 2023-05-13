@@ -1,4 +1,4 @@
-function [fTable, fIndex, fTableParser, fSentence, fValid] = ccTableFilter(hTable, fRawSentence)
+function [fTable, fIndex, fTableParser, fSentence, fValid] = TableFilter(hTable, fRawSentence)
 %CCTABLEFILTER
 % Allowed filter operations (n-th column, case insensitive validation):
 % (a) NUMERIC COLUMNS:
