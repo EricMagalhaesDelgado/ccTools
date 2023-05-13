@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+    <style>
+    textarea {
+        font-family: Helvetica;
+        font-size: 10px;
+        vertical-align: bottom;
+        border: 0px;
+        width: 98%;
+        height: 14px;
+        margin: 4px 0px 0px 0px;
+        padding: 0px;
+        resize: none;
+        outline: none;
+        overflow: hidden;
+        white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <textarea id="uiTextBox"></textarea>
+    
+    <script>
+    function setup(htmlComponent) {
+        textarea = document.getElementById("uiTextBox");
+        
+        textarea.addEventListener("keydown", (event) => {
+            if ((event.keyCode == 13) && (htmlComponent.Data != textarea.value)) {
+            	htmlComponent.Data = textarea.value;
+            	textarea.blur();
+            	textarea.scrollLeft = 0;
+            }
+        });
+
+        textarea.addEventListener("input", (event) => {
+            const xi = textarea.selectionStart;
+            const xf = textarea.selectionEnd;
+                
+            textarea.value = textarea.value.toUpperCase();
+            textarea.setSelectionRange(xi,xf);
+        });
+    }
+    </script>
+</body>
+</html>
