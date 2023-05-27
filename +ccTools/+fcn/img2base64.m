@@ -12,11 +12,11 @@ function [img_Format, img_String] = img2base64(imgPath)
     try
         [~,~,img_Format] = fileparts(imgPath);
         switch lower(img_Format)
-            case '.png';           img_Format = 'png';
-            case {'.jpg', 'jpeg'}; img_Format = 'jpeg';
-            case '.gif';           img_Format = 'gif';
-            case '.svg';           img_Format = 'svg';
-            otherwise;             error('Image file format must be "JPEG", "PNG", "GIF", or "SVG".')
+            case '.png';            img_Format = 'png';
+            case {'.jpg', '.jpeg'}; img_Format = 'jpeg';
+            case '.gif';            img_Format = 'gif';
+            case '.svg';            img_Format = 'svg+xml';
+            otherwise;              error('Image file format must be "JPEG", "PNG", "GIF", or "SVG".')
         end
 
         fileID = fopen(imgPath, 'r');

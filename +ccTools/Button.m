@@ -27,7 +27,7 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
         BorderWidth     (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 1
         BorderColor     (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
-        BorderRadius    (1,:) char   {ccTools.validators.mustBeCSSProperty(BorderRadius, 'border-radius')} = '5px'
+        BorderRadius    (1,:) char   {ccTools.validators.mustBeCSSProperty(BorderRadius, 'border-radius')} = '5px' % '50%' (rounded button)
         BorderPadding   (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
             
         IconWidth       (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconWidth,  'nonZero')}      = 18 % pixels
@@ -230,13 +230,26 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
         function htmlRGB = htmlRGBColor(comp, Type, BackgroundColor)
             HSL = ccTools.fcn.rgb2hsl(BackgroundColor);
             switch Type
-                case 'hover'  % down S component (10%) and up L component (10%)
-                    HSL(2) = HSL(2)-.1; HSL(2) = max([0, HSL(2)]);
-                    HSL(3) = HSL(3)+.1; HSL(3) = min([1, HSL(3)]);
-                case 'active' % down L component (10%)
-                    HSL(3) = HSL(3)-.1; HSL(3) = max([0, HSL(3)]);
+                case 'hover'
+                    if ccTools.fcn.isGrayColor(BackgroundColor)
+                        x = mean(double(BackgroundColor));
+                        RGB = repmat(uint8(-7.824e-06*x.^3 + 0.0016274*x.^2 + 0.98762*x + 25.1057), 1, 3);
+                    else
+                        HSL(2) = max([0, HSL(2)-.1]);
+                        HSL(3) = min([1, HSL(3)+.1]);
+                        RGB = ccTools.fcn.hsl2rgb(HSL, 'uint8');
+                    end
+
+                case 'active'
+                    if ccTools.fcn.isGrayColor(BackgroundColor)
+                        x = mean(double(BackgroundColor));
+                        RGB = repmat(uint8(-0.00070233*x.^2 + 0.91794*x + 0.21056), 1, 3);
+                    else
+                        HSL(3) = max([0, HSL(3)-.1]);
+                        RGB = ccTools.fcn.hsl2rgb(HSL, 'uint8');
+                    end
             end
-            RGB = ccTools.fcn.hsl2rgb(HSL);
+            
             htmlRGB = sprintf('rgb(%d, %d, %d)', RGB(1), RGB(2), RGB(3));
         end
 

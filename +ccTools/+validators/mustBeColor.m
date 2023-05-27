@@ -7,6 +7,8 @@ function mustBeColor(x, Format)
 % scalar "categorical") that represents the color's hexadecimal code or 
 % its name, such as "white" or "black".
 
+% See also VALIDATECOLOR
+
 % Author.: Eric Magalhães Delgado
 % Date...: May 12, 2023
 % Version: 1.00

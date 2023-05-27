@@ -481,6 +481,10 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 VariableTypes = repmat({'string'}, 1, COLUMNS);
 
             else
+                VariableNames = repmat({''}, 1, COLUMNS);
+                for ii = 1:COLUMNS
+                    VariableNames{ii} = columnNameAdjust(comp, ii);
+                end
                 VariableTypes = repmat({'string'}, 1, COLUMNS);
             end           
 
@@ -655,14 +659,9 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         if strcmp(comp.ColumnWidth{jj}, 'auto'); columnWidth = '';
                         else;                                    columnWidth = sprintf(' style="width: %s;"', comp.ColumnWidth{jj});
                         end
-        
+
                         % ColumnName
-                        columnName = comp.ColumnName{jj};
-                        if iscell(columnName); columnName = strjoin(columnName, '<br>');
-                        end
-                        columnName = replace(columnName, {newline, '|'}, '<br>');
-                        if comp.hCapitalLetter; columnName = upper(columnName);
-                        end
+                        columnName = columnNameAdjust(comp, jj);
         
                         % ColumnEditable
                         if comp.ColumnEditable(jj); columnEditable = ' contenteditable="true"';
@@ -692,6 +691,17 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 htmlContentTemp = [htmlContentTemp, '</tr>'];
             end            
             htmlCode = [htmlCode, htmlContentTemp, sprintf('\n\t</tbody>\n</table>\n\n'), htmlScriptTemplate(comp), sprintf('\n</body>\n</html>')];
+        end
+
+
+        % COLUMNNAME
+        function columnName = columnNameAdjust(comp, jj)
+            columnName = comp.ColumnName{jj};
+            if iscell(columnName); columnName = strjoin(columnName, '<br>');
+            end
+            columnName = replace(columnName, {newline, '|'}, '<br>');
+            if comp.hCapitalLetter; columnName = upper(columnName);
+            end
         end
 
 
