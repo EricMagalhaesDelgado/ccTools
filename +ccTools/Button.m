@@ -1,7 +1,7 @@
 classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
     % Author.: Eric Magalhães Delgado
-    % Date...: May 13, 2023
+    % Date...: May 31, 2023
     % Version: 1.00
 
     %% PROPERTIES
@@ -10,45 +10,50 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
         HTML matlab.ui.control.HTML
     end
 
-    properties (AbortSet)
-        Model           (1,1) ccTools.enum.ButtonModel                                                     = ccTools.enum.ButtonModel.IconPlusText
+    properties
+        Model            (1,1) ccTools.enum.ButtonModel                                                     = ccTools.enum.ButtonModel.IconPlusText
 
-        Text            (1,:) char   {ccTools.validators.mustBeScalarText}                                 = 'Button'
-        Description     (1,:) char   {ccTools.validators.mustBeScalarText}                                 = 'Description'
-        Icon            (1,:) char   {ccTools.validators.mustBeScalarText}                                 = ''
+        Text             (1,:) char   {ccTools.validators.mustBeScalarText}                                 = 'Button'
+        Description      (1,:) char   {ccTools.validators.mustBeScalarText}                                 = 'Description'
+        Icon             (1,:) char   {ccTools.validators.mustBeScalarText}                                 = ''
 
-        IconAlignment   (1,1) ccTools.enum.IconAlign                                                       = ccTools.enum.IconAlign.top
-        HorizontalAlign (1,1) ccTools.enum.HorizontalAlign                                                 = ccTools.enum.HorizontalAlign.right
-        VerticalAlign   (1,1) ccTools.enum.VerticalAlign                                                   = ccTools.enum.VerticalAlign.center
+        IconAlignment    (1,1) ccTools.enum.IconAlign                                                       = ccTools.enum.IconAlign.top
+        HorizontalAlign  (1,1) ccTools.enum.HorizontalAlign                                                 = ccTools.enum.HorizontalAlign.right
+        VerticalAlign    (1,1) ccTools.enum.VerticalAlign                                                   = ccTools.enum.VerticalAlign.center
 
-        ColumnSpacing   (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
-        RowSpacing      (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 0
-        RowTextSpacing  (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 0
+        ColumnSpacing    (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
+        RowSpacing       (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 0
+        RowTextSpacing   (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 0
 
-        BorderWidth     (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 1
-        BorderColor     (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
-        BorderRadius    (1,:) char   {ccTools.validators.mustBeCSSProperty(BorderRadius, 'border-radius')} = '5px' % '50%' (rounded button)
-        BorderPadding   (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
+        BorderWidth      (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 1
+        BorderColor      (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
+        BorderRadius     (1,:) char   {ccTools.validators.mustBeCSSProperty(BorderRadius, 'border-radius')} = '5px' % '50%' (rounded button)
+        BorderPadding    (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
             
-        IconWidth       (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconWidth,  'nonZero')}      = 18 % pixels
-        IconHeight      (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconHeight, 'nonZero')}      = 18 % pixels
+        IconWidth        (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconWidth,  'nonZero')}      = 18 % pixels
+        IconHeight       (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconHeight, 'nonZero')}      = 18 % pixels
 
-        FontFamily      (1,1) ccTools.enum.FontFamily                                                      = ccTools.enum.FontFamily.Helvetica
-        tFontWeight     (1,1) ccTools.enum.FontWeight                                                      = ccTools.enum.FontWeight.bold
-        tFontSize       (1,1) double {ccTools.validators.mustBeUnsignedNumber(tFontSize, 'nonZero')}       = 12
-        tFontColor      (1,:) char   {ccTools.validators.mustBeColor}                                      = 'black'
-        dFontSize       (1,1) double {ccTools.validators.mustBeUnsignedNumber(dFontSize, 'nonZero')}       = 10
-        dFontColor      (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
+        FontFamily       (1,1) ccTools.enum.FontFamily                                                      = ccTools.enum.FontFamily.Helvetica
+        tFontWeight      (1,1) ccTools.enum.FontWeight                                                      = ccTools.enum.FontWeight.bold
+        tFontSize        (1,1) double {ccTools.validators.mustBeUnsignedNumber(tFontSize, 'nonZero')}       = 12
+        tFontColor       (1,:) char   {ccTools.validators.mustBeColor}                                      = 'black'
+        dFontSize        (1,1) double {ccTools.validators.mustBeUnsignedNumber(dFontSize, 'nonZero')}       = 10
+        dFontColor       (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
 
-        Enable          (1,1) logical                                                                      = true
-        DisabledOpacity (1,1) double {ccTools.validators.mustBeNumberInRange(DisabledOpacity, .10, .90)}   = .35 % Matlab default value (uibutton R2021b)
+        Enable           (1,1) logical                                                                      = true
+        DisabledOpacity  (1,1) double {ccTools.validators.mustBeNumberInRange(DisabledOpacity, .10, .90)}   = .35 % Matlab default value (uibutton R2021b)
     end
 
     properties (Access = protected, UsedInUpdate = false)
-        Startup         (1,1) logical = true
-        pathToMFILE     (1,:) char    = ''
+        OnCleanup
+
+        pathToMFILE      (1,:) char                                                                         = ''
+        pathToTEMPFILE   (1,:) char                                                                         = ''
         
-        PreviousEnable  (1,1) logical = true
+        PreviousPosition (1,4) double                                                                       = [1 1 180 70]
+        
+        parentClass      (1,:) char                                                                         = ''
+        parentListener
     end
 
 
@@ -63,43 +68,25 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
         function setup(comp)
             comp.pathToMFILE = fileparts(mfilename('fullpath'));
 
+            tempFolder = tempname;
+            comp.pathToTEMPFILE = tempFolder;
+            comp.OnCleanup = onCleanup(@()ccTools.fcn.deleteTempFolder(tempFolder));
+            
             comp.Position = [1 1 180 70];
             comp.BackgroundColor = "#f5f5f5"; % Matlab default value (uibutton)
 
-            comp.Grid = uigridlayout(comp);
-            comp.Grid.ColumnWidth = {'1x'};
-            comp.Grid.RowHeight = {'1x'};
-            comp.Grid.Padding = [0 0 0 0];
-            comp.Grid.BackgroundColor = [1 1 1];
-
-            comp.HTML = uihtml(comp.Grid);
-            comp.HTML.Data = '';
-            comp.HTML.DataChangedFcn = matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true);
-            comp.HTML.Layout.Row = 1;
-            comp.HTML.Layout.Column = 1;
+            comp.Grid = uigridlayout(comp, [1 1], Padding=[0 0 0 0]);            
+            comp.HTML = uihtml(comp.Grid, Data='', DataChangedFcn=matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true), HTMLSource=htmlTempFile(comp));
         end
 
 
         function update(comp)
-            if comp.Startup
-                comp.Startup = false;
-
-                comp.PreviousEnable = comp.Enable;
-                comp.HTML.HTMLSource = htmlConstructor(comp);
-
-                if isprop(comp.Parent, 'BackgroundColor'); comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
-                else;                                      comp.Grid.BackgroundColor = "#f0f0f0"; % Matlab default background color (canvas/uigrid)
-                end
-            else    
-                if ~isequal(comp.Enable, comp.PreviousEnable)
-                    comp.PreviousEnable = comp.Enable;                
-                    if comp.Enable; comp.HTML.Data = 'ButtonEnabled';
-                    else;           comp.HTML.Data = 'ButtonDisabled';
-                    end
-                else
-                    comp.HTML.HTMLSource = htmlConstructor(comp);
-                end
+            if ~isequal(comp.Position, comp.PreviousPosition)               % PositionChanged
+                comp.PreviousPosition = comp.Position;
+                addListenerBackgroundColor(comp)                            % Check Parent Changed (Grid1 >> Grid2 | Grid >> Panel | Figure >> Panel and so on...)
             end
+
+            comp.HTML.HTMLSource = htmlTempFile(comp);
         end
 
 
@@ -115,9 +102,63 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
     
     %% HTML SOURCE CODE CONSTRUCTOR
     methods (Access = protected)
+        function addListenerBackgroundColor(comp)
+            if ~strcmp(comp.parentClass, class(comp.Parent))
+                comp.parentClass = class(comp.Parent);
+                switch comp.parentClass
+                    case 'matlab.ui.Figure'
+                        parentColor    = comp.Parent.Color;
+                        parentProperty = 'Color';
+                    otherwise
+                        parentColor    = comp.Parent.BackgroundColor;
+                        parentProperty = 'BackgroundColor';
+                end
+                comp.Grid.BackgroundColor = parentColor;
+    
+                if ~isempty(comp.parentListener)
+                    delete(comp.parentListener)
+                end
+    
+                try
+                    comp.parentListener = addlistener(comp.Parent, parentProperty, 'PostSet', @(~,~)updateBackgroundColor(comp));
+                catch
+                    comp.parentListener = []; % 'BackgroundColor' property in class 'matlab.ui.container.GridLayout' is not defined to be SetObservable.
+                end
+            end
+        end
+
+
+        function updateBackgroundColor(comp)
+            if isvalid(comp)
+                switch class(comp.Parent)
+                    case 'matlab.ui.Figure'
+                        comp.Grid.BackgroundColor = comp.Parent.Color;
+                    case 'matlab.ui.container.Panel'
+                        comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
+                    case 'matlab.ui.container.Tab'
+                        if ~strcmp(comp.Parent.BackgroundColor, 'none')
+                            comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
+                        end
+                end
+            end
+        end
+
+
+        function tempFile = htmlTempFile(comp)
+            htmlCode = htmlConstructor(comp);
+
+            tempFile = fullfile(comp.pathToTEMPFILE, sprintf('ButtonView_%s.html', datestr(now, 'yyyymmdd_THHMMSS')));
+            if ~isfolder(comp.pathToTEMPFILE)
+                mkdir(comp.pathToTEMPFILE)
+            end
+            fileID = fopen(tempFile, 'w'); 
+            fwrite(fileID, htmlCode, 'char');
+            fclose(fileID);
+        end
+
+
         function htmlCode = htmlConstructor(comp)
             htmlGrid   = htmlGridLayout(comp);
-
             htmlStyle  = htmlStyleTemplate(comp, htmlGrid);
             htmlBody   = htmlBodyTemplate(comp);
             htmlScript = htmlScriptTemplate(comp);
@@ -126,8 +167,8 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
             else;           buttonStatus = ' disabled';
             end
 
-            htmlCode   = sprintf(['<!DOCTYPE html>\n<html>\n<head>\n<style type="text/css">\n%s\n</style>\n</head>\n\n'       ...
-                                  '<body>\n\t<button id="ccButton"%s>\n\t\t<div class="Grid">\n%s\n\t\t</div>\n\t</button>\n' ...
+            htmlCode   = sprintf(['<!DOCTYPE html>\n<html>\n<head>\n<style type="text/css">\n%s\n</style>\n</head>\n\n'             ...
+                                  '<body>\n\t<button id="ccTools.Button"%s>\n\t\t<div class="Grid">\n%s\n\t\t</div>\n\t</button>\n' ...
                                   '<script type="text/javascript">\n%s\n</script>\n</body>\n</html>'], htmlStyle, buttonStatus, htmlBody, htmlScript);
         end
 
@@ -212,18 +253,18 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
             htmlActiveColor     = htmlRGBColor(comp, 'active', BackGroundColor);
 
             htmlStyle = sprintf(fileread(fullfile(comp.pathToMFILE, 'css&js', 'ccButton.css')), comp.BorderPadding,            comp.BorderWidth,              ...
-                                                                                                 comp.RowSpacing,               comp.IconHeight,               ...
-                                                                                                 htmlBackGroundColor,           comp.BorderColor,              ...
-                                                                                                 comp.BorderRadius,             htmlHoverColor,                ...
-                                                                                                 comp.DisabledOpacity,          htmlActiveColor,               ...
-                                                                                                 comp.RowTextSpacing,           htmlGrid.RowHeight,            ...
-                                                                                                 htmlGrid.ColumnWidth,          comp.ColumnSpacing,            ...
-                                                                                                 htmlGrid.Icon.HorizontalAlign, htmlGrid.Icon.VerticalAlign,   ...
-                                                                                                 comp.IconWidth,                htmlGrid.Text.HorizontalAlign, ...
-                                                                                                 htmlGrid.Text.HorizontalAlign, htmlGrid.Text.VerticalAlign,   ...
-                                                                                                 comp.FontFamily,               comp.tFontWeight,              ...
-                                                                                                 comp.tFontSize,                comp.tFontColor,               ...
-                                                                                                 comp.dFontSize,                comp.dFontColor);
+                                                                                                comp.RowSpacing,               comp.IconHeight,               ...
+                                                                                                htmlBackGroundColor,           comp.BorderColor,              ...
+                                                                                                comp.BorderRadius,             htmlHoverColor,                ...
+                                                                                                comp.DisabledOpacity,          htmlActiveColor,               ...
+                                                                                                comp.RowTextSpacing,           htmlGrid.RowHeight,            ...
+                                                                                                htmlGrid.ColumnWidth,          comp.ColumnSpacing,            ...
+                                                                                                htmlGrid.Icon.HorizontalAlign, htmlGrid.Icon.VerticalAlign,   ...
+                                                                                                comp.IconWidth,                htmlGrid.Text.HorizontalAlign, ...
+                                                                                                htmlGrid.Text.HorizontalAlign, htmlGrid.Text.VerticalAlign,   ...
+                                                                                                comp.FontFamily,               comp.tFontWeight,              ...
+                                                                                                comp.tFontSize,                comp.tFontColor,               ...
+                                                                                                comp.dFontSize,                comp.dFontColor);
         end
 
 
@@ -255,7 +296,7 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
 
         function htmlBody = htmlBodyTemplate(comp)
-            editedText        = replace(comp.Text,    '|', '<br>');
+            editedText        = replace(comp.Text,        '|', '<br>');
             editedDescription = replace(comp.Description, '|', '<br>');
 
             switch comp.Model
@@ -281,8 +322,8 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
         function htmlTemplate = htmlBodyTemplate_Aux(comp, Type, Parameters)
             switch Type
-                case 'Icon'; htmlTemplate = sprintf('\t\t\t<div class="Image"><img src="data:image/%s;base64,%s"></div>',                               Parameters{1}, Parameters{2});
-                case 'Text'; htmlTemplate = sprintf('\t\t\t<div class="Text">%s<br class="TextRowSpacing"><span class="Description">%s</span></div>\n', Parameters{1}, Parameters{2});
+                case 'Icon'; htmlTemplate = sprintf('\t\t\t<div class="Image"><img src="data:image/%s;base64,%s"></div>',                             Parameters{1}, Parameters{2});
+                case 'Text'; htmlTemplate = sprintf('\t\t\t<div class="Text">%s<br class="TextRowSpacing"><span class="Description">%s</span></div>', Parameters{1}, Parameters{2});
             end
         end
 

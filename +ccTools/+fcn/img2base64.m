@@ -1,16 +1,18 @@
-function [img_Format, img_String] = img2base64(imgPath)
+function [img_Format, img_String] = img2base64(imgFileFullPath)
 %IM2BASE64
 
 % Author.: Eric Magalhães Delgado
-% Date...: May 12, 2023
+% Date...: May 29, 2023
 % Version: 1.00
 
     arguments
-        imgPath {ccTools.validators.mustBeScalarText}
+        imgFileFullPath {ccTools.validators.mustBeScalarText}
     end
 
+    imgFileFullPath = ccTools.fcn.FileParts(imgFileFullPath);
+
     try
-        [~,~,img_Format] = fileparts(imgPath);
+        [~,~,img_Format] = fileparts(imgFileFullPath);
         switch lower(img_Format)
             case '.png';            img_Format = 'png';
             case {'.jpg', '.jpeg'}; img_Format = 'jpeg';
@@ -19,7 +21,7 @@ function [img_Format, img_String] = img2base64(imgPath)
             otherwise;              error('Image file format must be "JPEG", "PNG", "GIF", or "SVG".')
         end
 
-        fileID = fopen(imgPath, 'r');
+        fileID = fopen(imgFileFullPath, 'r');
         imArray  = fread(fileID, Inf, 'uint8');
         img_String = base64encode(imArray);
         fclose(fileID);

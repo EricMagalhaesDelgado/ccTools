@@ -1,7 +1,7 @@
 classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
     % Author.: Eric Magalhães Delgado
-    % Date...: May 12, 2023
+    % Date...: May 29, 2023
     % Version: 1.00
 
     %% PROPERTIES
@@ -64,13 +64,16 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
     properties (Access = protected, UsedInUpdate = false)
         Startup           (1,2) logical = [true, true]
+        OnCleanup
+
         pathToMFILE       (1,:) char    = ''
+        pathToTEMPFILE    (1,:) char    = ''
         
         EventName         (1,:) char    = ''
         pTable_MaxRows    (1,1) double  = 1000
         pTable_Page       (1,1) double  = 1
         ProgressDialog    (1,1) logical = false
-        TableSize         (1,1) double  = 0;
+        TableSize         (1,1) double  = 0
     end
 
 
@@ -87,13 +90,17 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         % SETUP (entry point)
         function setup(comp)
             comp.pathToMFILE = fileparts(mfilename('fullpath'));
+            
+            tempFolder = tempname;
+            comp.pathToTEMPFILE = tempFolder;
+            comp.OnCleanup = onCleanup(@()ccTools.fcn.deleteTempFolder(tempFolder));
 
             comp.Position = [1 1 520 320];
             comp.BackgroundColor = [1 1 1];
 
             comp.Grid = uigridlayout(comp);
             comp.Grid.ColumnWidth = {'1x', '1x', 17, 17, 17, 17, 17};
-            comp.Grid.RowHeight = {'1x', 17, 17, 24};
+            comp.Grid.RowHeight = {'1x', 0, 17, 0};
             comp.Grid.ColumnSpacing = 5;
             comp.Grid.RowSpacing = 2;
             comp.Grid.Padding = [2 2 2 2];
@@ -180,7 +187,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.PromptPanel.Layout.Column = [1 7];
 
             comp.PromptGrid = uigridlayout(comp.PromptPanel);
-            comp.PromptGrid.ColumnWidth = {17, 17, '1x'};
+            comp.PromptGrid.ColumnWidth = {0, 17, '1x'};
             comp.PromptGrid.RowHeight = {'1x'};
             comp.PromptGrid.ColumnSpacing = 5;
             comp.PromptGrid.RowSpacing = 3;
@@ -202,20 +209,10 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.PromptLabel.Text = '>>';
 
             comp.PromptEntry = uihtml(comp.PromptGrid);
+            comp.PromptEntry.HTMLSource = fileread(fullfile(comp.pathToMFILE, 'html', 'uiTextBox.html'));
             comp.PromptEntry.DataChangedFcn = matlab.apps.createCallbackFcn(comp, @toolClicked, true);
             comp.PromptEntry.Layout.Row = 1;
             comp.PromptEntry.Layout.Column = 3;
-
-            postSetupFcn(comp)
-        end
-
-
-        function postSetupFcn(comp)
-            comp.Grid.BackgroundColor      = comp.BackgroundColor;
-            comp.Grid.RowHeight([2,4])     = {0,0};
-            comp.PromptGrid.ColumnWidth{1} = 0;
-            comp.Filters.Text              = '';
-            comp.PromptEntry.HTMLSource    = fileread(fullfile(comp.pathToMFILE, 'html', 'uiTextBox.html'));
         end
         
         
@@ -373,15 +370,13 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 eTable = startup_EmptyTable(comp);
                 if ~isempty(eTable.Properties.VariableNames)
                     comp.EventName = 'emptyTable';
-
-                    comp.HTML.HTMLSource = htmlConstructor(comp, eTable);
-                    drawnow
-
+                    htmlConstructor(comp, eTable);
                     comp.EventName = '';
                 end                
 
             else
                 d = uiProgressDialog(comp);
+                drawnow
     
                 % Filled table startup
                 if ~isempty(comp.Data) && comp.Startup(2) && strcmp(srcFcn, 'update')
@@ -430,7 +425,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                     end
                     
                     % HTML
-                    comp.HTML.HTMLSource = htmlConstructor(comp, fTable);
+                    htmlConstructor(comp, fTable);
                     drawnow
         
                     % Selection/Cell properties re-start
@@ -455,7 +450,6 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 if ~isempty(d)
                     comp.ProgressDialog = false;                
                     delete(d)
-                    drawnow
                 end
             end
         end
@@ -628,7 +622,6 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                        'Visible', 'on')
                 d.Layout.Row    = [1 4];
                 d.Layout.Column = [1 7];
-                drawnow
             else
                 d = [];
             end
@@ -638,21 +631,27 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
     
     %% HTML SOURCE CODE CONSTRUCTOR
     methods (Access = protected)        
-        function htmlCode = htmlConstructor(comp, fTable)
-            pTable = htmlPaginationTable(comp, fTable);
+        function htmlConstructor(comp, fTable)
+            pTable  = htmlPaginationTable(comp, fTable);
 
             ROWS    = height(pTable);
             COLUMNS = width(pTable);
+
+            % TEMP FILE
+            tempFile = fullfile(comp.pathToTEMPFILE, sprintf('TableView_%s.html', datestr(now, 'yyyymmdd_THHMMSS')));
+            if ~isfolder(comp.pathToTEMPFILE)
+                mkdir(comp.pathToTEMPFILE)
+            end
+            fileID = fopen(tempFile, 'w'); 
             
             % HEADER
-            htmlCode = sprintf(['<!DOCTYPE html>\n<html>\n%s\n\n<body>\n' ...
-                                '<table id="ccTable">\n\t<thead>\n\t\t<tr>'], htmlHeaderTemplate(comp));
+            fwrite(fileID, sprintf(['<!DOCTYPE html>\n<html>\n%s\n\n<body>\n' ...
+                                    '<table id="ccTable">\n\t<thead>\n\t\t<tr>'], htmlHeaderTemplate(comp)), 'char');
 
-            htmlContentTemp = '';
             for jj = 1:COLUMNS
                 switch comp.EventName
                     case 'emptyTable' % component startup
-                        htmlContentTemp = [htmlContentTemp, sprintf('\n\t\t\t<th scope="col">%s</th>', fTable.Properties.VariableNames{jj})];
+                        fwrite(fileID, sprintf('\n\t\t\t<th scope="col">%s</th>', fTable.Properties.VariableNames{jj}), 'char');
 
                     otherwise
                         % ColumnWidth
@@ -668,29 +667,28 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         else;                       columnEditable = '';
                         end
         
-                        % htmlCode                            
-                        htmlContentTemp = [htmlContentTemp, sprintf('\n\t\t\t<th scope="col"%s>%s</th>', columnWidth, columnName)];
+                        fwrite(fileID, sprintf('\n\t\t\t<th scope="col"%s>%s</th>', columnWidth, columnName), 'char');
                         rowTemplate{jj} = sprintf('<td class="%s"%s>%s</td>', comp.ColumnAlign{jj}, columnEditable, comp.ColumnPrecision{jj});
                 end
             end
-            htmlCode = [htmlCode, htmlContentTemp, sprintf('\n\t\t</tr>\n\t</thead>\n\n\t<tbody>')];
+            fwrite(fileID, sprintf('\n\t\t</tr>\n\t</thead>\n\n\t<tbody>'), 'char');
             
             % BODY
-            htmlContentTemp = '';
             for ii = 1:ROWS
-                htmlContentTemp = [htmlContentTemp, sprintf('\n\t\t<tr contenteditable="false">')];
-            
+                fwrite(fileID, sprintf('\n\t\t<tr contenteditable="false">'), 'char');            
                 for jj = 1:COLUMNS
                     value = pTable{ii, jj};
                     if isnumeric(value)
                         value = value * comp.ColumnMultiplier(jj);
-                    end
-            
-                    htmlContentTemp = [htmlContentTemp, sprintf(rowTemplate{jj}, value)];
+                    end            
+                    fwrite(fileID, sprintf(rowTemplate{jj}, value), 'char');
                 end            
-                htmlContentTemp = [htmlContentTemp, '</tr>'];
+                fwrite(fileID, '</tr>', 'char');
             end            
-            htmlCode = [htmlCode, htmlContentTemp, sprintf('\n\t</tbody>\n</table>\n\n'), htmlScriptTemplate(comp), sprintf('\n</body>\n</html>')];
+            fwrite(fileID, [sprintf('\n\t</tbody>\n</table>\n\n'), htmlScriptTemplate(comp), sprintf('\n</body>\n</html>')], 'char');
+            fclose(fileID);
+
+            comp.HTML.HTMLSource = tempFile;
         end
 
 
