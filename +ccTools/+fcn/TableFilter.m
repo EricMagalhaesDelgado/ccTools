@@ -31,7 +31,7 @@ function [fTable, fIndex, fTableParser, fSentence, fValid] = TableFilter(hTable,
 %     C1 PRECISION "%.0F"; C2 PRECISION "%.3F"
 
 % Author.: Eric Magalhães Delgado
-% Date...: May 12, 2023
+% Date...: June 03, 2023
 % Version: 1.00
 
     [fTableParser, fSentence, fValid] = Fcn1_InputParser(hTable, fRawSentence);
@@ -91,7 +91,10 @@ function [fTableParser, fSentence, fValid] = Fcn1_InputParser(hTable, fRawSenten
                 for kk = 1:numel(tempStruct)
                     COLUMN = str2double(tempStruct(kk).Column);
 
-                    if contains(tempStruct(kk).Operation, 'SORTED')
+                    if COLUMN > width(hTable)
+                        continue
+                        
+                    elseif contains(tempStruct(kk).Operation, 'SORTED')
                         tempStruct(kk).Value = '-';
 
                     elseif strcmp(tempStruct(kk).Operation, 'PRECISION')

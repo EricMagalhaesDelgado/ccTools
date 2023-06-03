@@ -73,6 +73,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         TableSize         (1,1) double  = 0
 
         ColumnRawName
+        ColumnRawClass
         ColumnClass
     end
 
@@ -221,28 +222,28 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             switch comp.EventName
                 case 'DataChanged'
                     if isempty(comp.Data)
-                        comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
-
-                        comp.Grid.RowHeight(2:4) = {0, 17, 0};
-                        htmlPaginationTable(comp, table);
+                        tableCreation(comp, 'startup')
 
                     else
                         % Check if this is a different table...
-                        if ~isempty(comp.ColumnRawName)
+                        Flag = false;
+                        if ~isequal(comp.ColumnRawName, comp.Data.Properties.VariableNames)
+                            Flag = true;
+                        else
                             columnClass = {};
                             for ii = 1:width(comp.Data)
                                 columnClass{ii} = class(comp.Data{:,ii});
                             end
-    
-                            if ~isequal(comp.ColumnRawName, comp.Data.Properties.VariableNames) || ...
-                                    ~isequal(comp.ColumnClass, columnClass)
-                                comp.Startup     = true;
-                                comp.pTable_Page = 1;
-                                comp.TableSize   = height(comp.Data);
-            
-                                comp.PromptEntry.Data = '';
-                                comp.Filters.Text     = '';
+
+                            if ~isequal(comp.ColumnClass, columnClass) && ~isequal(comp.ColumnRawClass, columnClass)
+                                Flag = true;
                             end
+                        end
+
+                        if Flag
+                            comp.Startup     = true;
+                            comp.pTable_Page = 1;
+                            comp.TableSize   = height(comp.Data);
                         end
     
                         tableCreation(comp, 'update')
@@ -284,7 +285,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         elseif (idx1 && ~ismember(idx1, comp.FilteredIndex)) || (idx2 < 1) || (idx2 > width(comp.Data))
                             error('ERROR - CellEdited event: Out of range')
                         elseif (ismember(cellClass, {'char', 'string'}) && isnumeric(value)) || (isnumeric(comp.Data{idx1,idx2}) && ~isnumeric(value)) || (isnumeric(value) && isnan(value))
-                            error('ERROR - CellEdited event:Unexpected data type')
+                            error('ERROR - CellEdited event: Unexpected data type')
                         end
 
                         idx1 = find(comp.FilteredIndex == idx1, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
@@ -387,6 +388,8 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 eTable = startup_EmptyTable(comp);
                 if isempty(eTable.Properties.VariableNames)
                     comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
+                    comp.Grid.RowHeight(2:4) = {0, 17, 0};
+                    htmlPaginationTable(comp, table);
                 else
                     comp.EventName = 'emptyTable';
                     htmlConstructor(comp, eTable);
@@ -623,8 +626,9 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 hTable{:,ii} = replace(hTable{:,ii}, {newline, ';', '&&', '||'}, {'<br>', ',', '&', '|'});
             end
 
-            comp.ColumnRawName = hTable.Properties.VariableNames;
-            comp.ColumnClass   = columnClass;
+            comp.ColumnRawName  = hTable.Properties.VariableNames;
+            comp.ColumnRawClass = columnRawClass;
+            comp.ColumnClass    = columnClass;
 
             if ~isequal(hTable, comp.Data)
                 editFlag = true;
