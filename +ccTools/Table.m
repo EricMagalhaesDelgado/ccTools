@@ -1,7 +1,7 @@
 classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
     % Author.: Eric Magalhães Delgado
-    % Date...: May 29, 2023
+    % Date...: June 03, 2023
     % Version: 1.00
 
     %% PROPERTIES
@@ -36,7 +36,6 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         ColumnWidth       (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnWidth,      'ColumnWidth')}      = {'auto'}
         ColumnAlign       (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnAlign,      'ColumnAlign')}      = {'auto'}
         ColumnPrecision   (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnPrecision,  'ColumnPrecision')}  = {'auto'}
-        ColumnMultiplier  (1,:) double  {ccTools.validators.mustBeTableProperty(ColumnMultiplier, 'ColumnMultiplier')} = 1
 
         FilterToolbar     (1,1) logical                                                                                = true
         FilteredIndex     (:,1) double                                                                                 = []
@@ -63,17 +62,18 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
 
     properties (Access = protected, UsedInUpdate = false)
-        Startup           (1,2) logical = [true, true]
+        pathToMFILE
+        pathToTempFolder
         OnCleanup
 
-        pathToMFILE       (1,:) char    = ''
-        pathToTEMPFILE    (1,:) char    = ''
-        
+        Startup           (1,1) logical = true
         EventName         (1,:) char    = ''
         pTable_MaxRows    (1,1) double  = 1000
         pTable_Page       (1,1) double  = 1
-        ProgressDialog    (1,1) logical = false
         TableSize         (1,1) double  = 0
+
+        ColumnRawName
+        ColumnClass
     end
 
 
@@ -92,7 +92,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.pathToMFILE = fileparts(mfilename('fullpath'));
             
             tempFolder = tempname;
-            comp.pathToTEMPFILE = tempFolder;
+            comp.pathToTempFolder = tempFolder;
             comp.OnCleanup = onCleanup(@()ccTools.fcn.deleteTempFolder(tempFolder));
 
             comp.Position = [1 1 520 320];
@@ -107,7 +107,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.Grid.BackgroundColor = [1 1 1];
 
             comp.HTML = uihtml(comp.Grid);
-            comp.HTML.HTMLSource = fileread(fullfile(comp.pathToMFILE, 'html', 'emptyTable.html'));
+            comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
             comp.HTML.DataChangedFcn = matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true);
             comp.HTML.Layout.Row = 1;
             comp.HTML.Layout.Column = [1 7];
@@ -218,74 +218,91 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         
         % UPDATE (public property trigger)
         function update(comp)
-            if comp.Startup(1)
-                comp.Startup(1) = false;
-                if ~comp.FilterToolbar
-                    comp.Grid.RowHeight(3) = {0};
-                end
+            switch comp.EventName
+                case 'DataChanged'
+                    if isempty(comp.Data)
+                        comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
 
-                if isempty(comp.Data); tableCreation(comp, 'startup')
-                else;                  tableCreation(comp, 'update')
-                end
+                        comp.Grid.RowHeight(2:4) = {0, 17, 0};
+                        htmlPaginationTable(comp, table);
 
-            else
-                switch comp.EventName
-                    case 'DataChanged'
-                        if isempty(comp.HTML.Data)
-                            tableCreation(comp, 'update')
-                        end
-
-                    case 'SelectionChanged'
-                        if comp.Selection && ~ismember(comp.Selection, comp.FilteredIndex)
-                            comp.Selection = 0;
-                            error('ERROR - SelectionChanged event: Out of range')
-                        end
-
-                        if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'SelectionChanged_js2mat')
-                            % something?
-                        else
-                            idx1 = find(comp.FilteredIndex == comp.Selection, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
-                            if ~isempty(idx1) && (idx1 > 0) && (idx1 <= comp.pTable_MaxRows)
-                                comp.HTML.Data = struct('Event', 'SelectionChanged_mat2js', 'Value', idx1);
-                            else
-                                comp.HTML.Data = struct('Event', 'SelectionChanged_mat2js', 'Value', 0);
+                    else
+                        % Check if this is a different table...
+                        if ~isempty(comp.ColumnRawName)
+                            columnClass = {};
+                            for ii = 1:width(comp.Data)
+                                columnClass{ii} = class(comp.Data{:,ii});
                             end
+    
+                            if ~isequal(comp.ColumnRawName, comp.Data.Properties.VariableNames) || ...
+                                    ~isequal(comp.ColumnClass, columnClass)
+                                comp.Startup     = true;
+                                comp.pTable_Page = 1;
+                                comp.TableSize   = height(comp.Data);
+            
+                                comp.PromptEntry.Data = '';
+                                comp.Filters.Text     = '';
+                            end
+                        end
+    
+                        tableCreation(comp, 'update')
+                    end
+
+                case 'SelectionChanged'
+                    if comp.Selection && ~ismember(comp.Selection, comp.FilteredIndex)
+                        comp.Selection = 0;
+                        error('ERROR - SelectionChanged event: Out of range')
+                    end
+
+                    if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'SelectionChanged_js2mat')
+                        % something?
+                    else
+                        idx1 = find(comp.FilteredIndex == comp.Selection, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
+                        if ~isempty(idx1) && (idx1 > 0) && (idx1 <= comp.pTable_MaxRows)
+                            comp.HTML.Data = struct('Event', 'SelectionChanged_mat2js', 'Value', idx1);
+                        else
+                            comp.HTML.Data = struct('Event', 'SelectionChanged_mat2js', 'Value', 0);
+                        end
+                        return
+                    end
+
+                case 'CellEdited'
+                    idx1  = comp.Cell.Row;
+                    idx2  = comp.Cell.Column;
+                    value = comp.Cell.Value;
+
+                    if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'CellEdited_js2mat')
+                        if ~isnumeric(value)
+                            value = string(value);
+                        end
+                        comp.Data{idx1,idx2} = value;                                           % update() trigger
+                    else
+                        cellClass = class(comp.Data{idx1,idx2});
+
+                        if ~comp.ColumnEditable(idx2)
+                            error('ERROR - CellEdited event: Non-editable cell')
+                        elseif (idx1 && ~ismember(idx1, comp.FilteredIndex)) || (idx2 < 1) || (idx2 > width(comp.Data))
+                            error('ERROR - CellEdited event: Out of range')
+                        elseif (ismember(cellClass, {'char', 'string'}) && isnumeric(value)) || (isnumeric(comp.Data{idx1,idx2}) && ~isnumeric(value)) || (isnumeric(value) && isnan(value))
+                            error('ERROR - CellEdited event:Unexpected data type')
+                        end
+
+                        idx1 = find(comp.FilteredIndex == idx1, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
+                        if ~isempty(idx1) && (idx1 > 0) && (idx1 <= comp.pTable_MaxRows)
+                            comp.HTML.Data = struct('Event', 'CellEdited_mat2js', 'Row', idx1, 'Column', idx2, 'Value', value);
                             return
                         end
+                    end
 
-                    case 'CellEdited'
-                        idx1  = comp.Cell.Row;
-                        idx2  = comp.Cell.Column;
-                        value = comp.Cell.Value;
+                otherwise
+                    if isempty(comp.Data)
+                        tableCreation(comp, 'startup')
+                    end
+            end
 
-                        if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'CellEdited_js2mat')
-                            if ~isnumeric(value)
-                                value = string(value);
-                            end
-                            comp.Data{idx1,idx2} = value;                                           % update() trigger
-                        else
-                            cellClass = class(comp.Data{idx1,idx2});
-
-                            if ~comp.ColumnEditable(idx2)
-                                error('ERROR - CellEdited event: Non-editable cell')
-                            elseif (idx1 && ~ismember(idx1, comp.FilteredIndex)) || (idx2 < 1) || (idx2 > width(comp.Data))
-                                error('ERROR - CellEdited event: Out of range')
-                            elseif (ismember(cellClass, {'char', 'string'}) && isnumeric(value)) || (isnumeric(comp.Data{idx1,idx2}) && ~isnumeric(value)) || (isnumeric(value) && isnan(value))
-                                error('ERROR - CellEdited event:Unexpected data type')
-                            end
-
-                            idx1 = find(comp.FilteredIndex == idx1, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
-                            if ~isempty(idx1) && (idx1 > 0) && (idx1 <= comp.pTable_MaxRows)
-                                comp.HTML.Data = struct('Event', 'CellEdited_mat2js', 'Row', idx1, 'Column', idx2, 'Value', value);
-                                return
-                            end
-                        end
-                end
-
-                comp.EventName   = '';
-                if ~isempty(comp.HTML.Data)
-                    comp.HTML.Data = [];
-                end
+            comp.EventName   = '';
+            if ~isempty(comp.HTML.Data)
+                comp.HTML.Data = [];
             end
         end
         
@@ -368,32 +385,37 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             % Empty table startup
             if strcmp(srcFcn, 'startup')
                 eTable = startup_EmptyTable(comp);
-                if ~isempty(eTable.Properties.VariableNames)
+                if isempty(eTable.Properties.VariableNames)
+                    comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
+                else
                     comp.EventName = 'emptyTable';
                     htmlConstructor(comp, eTable);
                     comp.EventName = '';
-                end                
+                end
+                return
 
             else
-                d = uiProgressDialog(comp);
-                drawnow
-    
                 % Filled table startup
-                if ~isempty(comp.Data) && comp.Startup(2) && strcmp(srcFcn, 'update')
-                    comp.Startup(2) = false;
-                    comp.TableSize  = height(comp.Data);
+                if comp.Startup
+                    comp.Startup = false;
 
                     startup_PropertiesCheck(comp);
                     [editFlag, hTable] = startup_DataTypeCheck(comp);
-                    if editFlag; comp.Data = hTable;                        % update() trigger
-                    else;        update(comp)                               % programmatically update() trigger 
+                    if editFlag
+                        comp.Data = hTable;                                 % update() trigger
+                        pause(.001)                                         % Don't ask me why! Just give MATLAB some time to organize table rendering event... it works with any value (.000001 seconds, for example).
+                    else
+                        htmlConstructor(comp, hTable);
                     end
 
                 else
                     % FilterToolbar visibility
-                    if ~comp.FilterToolbar && (height(comp.Data) > comp.pTable_MaxRows)
-                        comp.FilterToolbar     = true;
-                        comp.Grid.RowHeight(3) = {17};
+                    if ~comp.FilterToolbar
+                        if height(comp.Data) <= comp.pTable_MaxRows
+                            comp.Grid.RowHeight(2:4) = {0,0,0};
+                        else
+                            comp.Grid.RowHeight(3) = {17};
+                        end
                     end
         
                     % Filtering
@@ -426,7 +448,6 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                     
                     % HTML
                     htmlConstructor(comp, fTable);
-                    drawnow
         
                     % Selection/Cell properties re-start
                     if height(fTable) && comp.Selection && ismember(comp.Selection, comp.FilteredIndex)
@@ -446,11 +467,6 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         notify(comp, 'DataFiltered')
                     end
                 end
-    
-                if ~isempty(d)
-                    comp.ProgressDialog = false;                
-                    delete(d)
-                end
             end
         end
 
@@ -458,31 +474,31 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         function hTable = startup_EmptyTable(comp)
             COLUMNS = numel(comp.ColumnName);
             
-            VariableNames = comp.ColumnName;
-            VariableTypes = comp.ColumnPrecision;
+            variableNames = comp.ColumnName;
+            variableTypes = comp.ColumnPrecision;
             
-            if isequal(VariableNames, {'auto'}) && isequal(VariableTypes, {'auto'})
+            if isequal(variableNames, {'auto'}) && isequal(variableTypes, {'auto'})
                 hTable = table;
                 return
 
-            elseif isequal(VariableNames, {'auto'})
+            elseif isequal(variableNames, {'auto'})
                 COLUMNS = numel(comp.ColumnPrecision);
 
-                VariableNames = repmat({''}, 1, COLUMNS);
+                variableNames = repmat({''}, 1, COLUMNS);
                 for ii = 1:COLUMNS
-                    VariableNames{ii} = sprintf('Column%d', ii);
+                    variableNames{ii} = sprintf('Column%d', ii);
                 end
-                VariableTypes = repmat({'string'}, 1, COLUMNS);
+                variableTypes = repmat({'string'}, 1, COLUMNS);
 
             else
-                VariableNames = repmat({''}, 1, COLUMNS);
+                variableNames = repmat({''}, 1, COLUMNS);
                 for ii = 1:COLUMNS
-                    VariableNames{ii} = columnNameAdjust(comp, ii);
+                    variableNames{ii} = columnNameAdjust(comp, ii);
                 end
-                VariableTypes = repmat({'string'}, 1, COLUMNS);
+                variableTypes = repmat({'string'}, 1, COLUMNS);
             end           
 
-            hTable = table('Size', [0, COLUMNS], 'VariableTypes', VariableTypes, 'VariableNames', VariableNames);
+            hTable = table('Size', [0, COLUMNS], 'VariableTypes', variableTypes, 'VariableNames', variableNames);
         end
 
 
@@ -503,11 +519,6 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             % ColumnWidth
             if isequal(comp.ColumnWidth, {'auto'}) || (numel(comp.ColumnWidth) ~= COLUMNS)
                 comp.ColumnWidth = repmat({'auto'}, [1, COLUMNS]);
-            end
-
-            % ColumnMultiplier
-            if numel(comp.ColumnMultiplier) ~= COLUMNS
-                comp.ColumnMultiplier = ones(1, COLUMNS);
             end
 
             % ColumnAlign, ColumnPrecision
@@ -541,7 +552,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         Align{ii}      = 'right';
                         Precision{ii}  = sprintf('%%.%.0ff', dec);    
                     else
-                        error('ccTable accepts only text ("cell", "string" and "categorical"), "datetime" and numeric ("double", "single", "uint8", "int8" and so on) as data classes.')
+                        error('ccTools.Table accepts only text ("cell", "string" and "categorical"), datetime and numeric ("double", "single", "uint8", "int8" and so on) as data classes.')
                     end
                 end
 
@@ -560,15 +571,22 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         function [editFlag, hTable] = startup_DataTypeCheck(comp)
             editFlag = false;
             hTable   = comp.Data;
-
             COLUMNS  = width(hTable);
-            for ii = 1:COLUMNS
-                if isnumeric(hTable{:,ii})
-                    continue
-                end
 
-                columnClass = class(hTable{:,ii});
-                switch columnClass
+            columnRawClass = {};
+            columnClass    = {};
+            
+            for ii = 1:COLUMNS
+                columnRawClass{ii} = class(hTable{:,ii});
+
+                if isnumeric(hTable{:,ii})
+                    columnClass{ii} = columnRawClass{ii};
+                    continue
+                else
+                    columnClass{ii} = 'string';
+                end
+                
+                switch columnRawClass{ii}
                     case 'string'
                     case 'categorical'                                      % categorical >> string
                         hTable = convertvars(hTable, ii, 'string');
@@ -605,25 +623,11 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 hTable{:,ii} = replace(hTable{:,ii}, {newline, ';', '&&', '||'}, {'<br>', ',', '&', '|'});
             end
 
+            comp.ColumnRawName = hTable.Properties.VariableNames;
+            comp.ColumnClass   = columnClass;
+
             if ~isequal(hTable, comp.Data)
                 editFlag = true;
-            end
-        end
-
-
-        % PROGRESS DIALOG
-        function d = uiProgressDialog(comp)
-            if ~comp.ProgressDialog
-                comp.ProgressDialog = true;
-                
-                d = uihtml(ancestor(comp.Grid, 'figure'), "Position", [1,1,0,0], "Visible", "off", "Tag", "uiProgressDialog");
-                set(d, 'Parent', comp.Grid,                                                                                ...
-                       'HTMLSource', sprintf(fileread(fullfile(comp.pathToMFILE, 'html', 'uiProgressDialog.html')), .64), ...
-                       'Visible', 'on')
-                d.Layout.Row    = [1 4];
-                d.Layout.Column = [1 7];
-            else
-                d = [];
             end
         end
     end
@@ -638,9 +642,9 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             COLUMNS = width(pTable);
 
             % TEMP FILE
-            tempFile = fullfile(comp.pathToTEMPFILE, sprintf('TableView_%s.html', datestr(now, 'yyyymmdd_THHMMSS')));
-            if ~isfolder(comp.pathToTEMPFILE)
-                mkdir(comp.pathToTEMPFILE)
+            tempFile = fullfile(comp.pathToTempFolder, sprintf('TableView_%s.html', datestr(now, 'yyyymmdd_THHMMSS')));
+            if ~isfolder(comp.pathToTempFolder)
+                mkdir(comp.pathToTempFolder)
             end
             fileID = fopen(tempFile, 'w'); 
             
@@ -677,10 +681,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             for ii = 1:ROWS
                 fwrite(fileID, sprintf('\n\t\t<tr contenteditable="false">'), 'char');            
                 for jj = 1:COLUMNS
-                    value = pTable{ii, jj};
-                    if isnumeric(value)
-                        value = value * comp.ColumnMultiplier(jj);
-                    end            
+                    value = pTable{ii, jj};          
                     fwrite(fileID, sprintf(rowTemplate{jj}, value), 'char');
                 end            
                 fwrite(fileID, '</tr>', 'char');

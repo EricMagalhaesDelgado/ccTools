@@ -1,7 +1,7 @@
 classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
     % Author.: Eric Magalhães Delgado
-    % Date...: May 31, 2023
+    % Date...: June 02, 2023
     % Version: 1.00
 
     %% PROPERTIES
@@ -45,14 +45,11 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
     end
 
     properties (Access = protected, UsedInUpdate = false)
+        pathToMFILE
+        pathToTempFolder
         OnCleanup
 
-        pathToMFILE      (1,:) char                                                                         = ''
-        pathToTEMPFILE   (1,:) char                                                                         = ''
-        
-        PreviousPosition (1,4) double                                                                       = [1 1 180 70]
-        
-        parentClass      (1,:) char                                                                         = ''
+        parentClass
         parentListener
     end
 
@@ -61,19 +58,20 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
     events (HasCallbackProperty, NotifyAccess = private)
         ButtonPushed
     end
-
-
-    %% MAIN METHODS: SETUP & UPDATE
+    
+    
+    
+    %% MAIN METHODS: SETUP, UPDATE, AND JS EVENT
     methods (Access = protected)
         function setup(comp)
             comp.pathToMFILE = fileparts(mfilename('fullpath'));
 
             tempFolder = tempname;
-            comp.pathToTEMPFILE = tempFolder;
+            comp.pathToTempFolder = tempFolder;
             comp.OnCleanup = onCleanup(@()ccTools.fcn.deleteTempFolder(tempFolder));
             
             comp.Position = [1 1 180 70];
-            comp.BackgroundColor = "#f5f5f5"; % Matlab default value (uibutton)
+            comp.BackgroundColor = "#f5f5f5";                               % Matlab default value (uibutton)
 
             comp.Grid = uigridlayout(comp, [1 1], Padding=[0 0 0 0]);            
             comp.HTML = uihtml(comp.Grid, Data='', DataChangedFcn=matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true), HTMLSource=htmlTempFile(comp));
@@ -81,16 +79,15 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
 
         function update(comp)
-            if ~isequal(comp.Position, comp.PreviousPosition)               % PositionChanged
-                comp.PreviousPosition = comp.Position;
+            comp.HTML.HTMLSource = htmlTempFile(comp);
+
+            if ~strcmp(comp.parentClass, class(comp.Parent))
                 addListenerBackgroundColor(comp)                            % Check Parent Changed (Grid1 >> Grid2 | Grid >> Panel | Figure >> Panel and so on...)
             end
-
-            comp.HTML.HTMLSource = htmlTempFile(comp);
         end
 
 
-        % JS >> MATLAB EVENTS
+        % JS EVENT
         function HTMLDataChanged(comp, event)
             if strcmp(event.Data, 'ButtonPushed')
                 comp.HTML.Data = '';
@@ -102,54 +99,12 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
     
     %% HTML SOURCE CODE CONSTRUCTOR
     methods (Access = protected)
-        function addListenerBackgroundColor(comp)
-            if ~strcmp(comp.parentClass, class(comp.Parent))
-                comp.parentClass = class(comp.Parent);
-                switch comp.parentClass
-                    case 'matlab.ui.Figure'
-                        parentColor    = comp.Parent.Color;
-                        parentProperty = 'Color';
-                    otherwise
-                        parentColor    = comp.Parent.BackgroundColor;
-                        parentProperty = 'BackgroundColor';
-                end
-                comp.Grid.BackgroundColor = parentColor;
-    
-                if ~isempty(comp.parentListener)
-                    delete(comp.parentListener)
-                end
-    
-                try
-                    comp.parentListener = addlistener(comp.Parent, parentProperty, 'PostSet', @(~,~)updateBackgroundColor(comp));
-                catch
-                    comp.parentListener = []; % 'BackgroundColor' property in class 'matlab.ui.container.GridLayout' is not defined to be SetObservable.
-                end
-            end
-        end
-
-
-        function updateBackgroundColor(comp)
-            if isvalid(comp)
-                switch class(comp.Parent)
-                    case 'matlab.ui.Figure'
-                        comp.Grid.BackgroundColor = comp.Parent.Color;
-                    case 'matlab.ui.container.Panel'
-                        comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
-                    case 'matlab.ui.container.Tab'
-                        if ~strcmp(comp.Parent.BackgroundColor, 'none')
-                            comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
-                        end
-                end
-            end
-        end
-
-
         function tempFile = htmlTempFile(comp)
             htmlCode = htmlConstructor(comp);
 
-            tempFile = fullfile(comp.pathToTEMPFILE, sprintf('ButtonView_%s.html', datestr(now, 'yyyymmdd_THHMMSS')));
-            if ~isfolder(comp.pathToTEMPFILE)
-                mkdir(comp.pathToTEMPFILE)
+            tempFile = fullfile(comp.pathToTempFolder, sprintf('ButtonView_%s.html', datestr(now, 'yyyymmdd_THHMMSS')));
+            if ~isfolder(comp.pathToTempFolder)
+                mkdir(comp.pathToTempFolder)
             end
             fileID = fopen(tempFile, 'w'); 
             fwrite(fileID, htmlCode, 'char');
@@ -330,6 +285,58 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
         function htmlScript = htmlScriptTemplate(comp)
             htmlScript = fileread(fullfile(comp.pathToMFILE, 'css&js', 'ccButton.js'));
+        end
+    end
+
+
+    %% PARENT BACKGROUNDCOLOR LISTENER
+    % Try to create a listener so that a change in the 'BackgroundColor' property 
+    % of the parent of the 'ccTools.Button' object will update its own 'BackgroundColor' 
+    % property. It's essential for rounded buttons, for example.
+    %
+    % Limitation:
+    % The 'BackgroundColor' property in the 'matlab.ui.container.GridLayout' class is not 
+    % defined as SetObservable. Therefore, this approach will only work when the parent is 
+    % a 'matlab.ui.Figure' (uifigure), 'matlab.ui.container.Panel' (uipanel), or 
+    % 'matlab.ui.container.Tab' (uitab).
+    methods (Access = protected)
+        function addListenerBackgroundColor(comp)            
+            comp.parentClass = class(comp.Parent);
+            switch comp.parentClass
+                case 'matlab.ui.Figure'
+                    parentColor    = comp.Parent.Color;
+                    parentProperty = 'Color';
+                otherwise
+                    parentColor    = comp.Parent.BackgroundColor;
+                    parentProperty = 'BackgroundColor';
+            end
+            comp.Grid.BackgroundColor = parentColor;
+
+            if ~isempty(comp.parentListener)
+                delete(comp.parentListener)
+            end
+
+            try
+                comp.parentListener = addlistener(comp.Parent, parentProperty, 'PostSet', @(~,~)updateBackgroundColor(comp));
+            catch
+                comp.parentListener = [];
+            end
+        end
+
+
+        function updateBackgroundColor(comp)
+            if isvalid(comp)
+                switch class(comp.Parent)
+                    case 'matlab.ui.Figure'
+                        comp.Grid.BackgroundColor = comp.Parent.Color;
+                    case 'matlab.ui.container.Panel'
+                        comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
+                    case 'matlab.ui.container.Tab'
+                        if ~strcmp(comp.Parent.BackgroundColor, 'none')
+                            comp.Grid.BackgroundColor = comp.Parent.BackgroundColor;
+                        end
+                end
+            end
         end
     end
 end
