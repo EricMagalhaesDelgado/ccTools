@@ -1,7 +1,7 @@
 function [status, errorMsg] = compCustomization(comp, varargin)
 
     arguments
-        comp {validators.mustBeBuiltInComponent}
+        comp {ccTools.validators.mustBeBuiltInComponent}
     end
 
     arguments (Repeating)
@@ -9,7 +9,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     end
 
     warning('off', 'MATLAB:structOnObject')
-    % warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
+    warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
 
     status   = true;
     errorMsg = '';
@@ -20,165 +20,220 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     compTag  = struct(struct(struct(comp).Controller)).ViewModel.Id;
 
     % varargin number validation
-    if mod(numel(varargin), 2)
-        error('Optional parameters must be in pairs.')
+    if nargin == 1
+        error('At least one Name-Value parameters must be passed to the function.')
+    elseif mod(nargin-1, 2)
+        error('Name-value parameters must be in pairs.')
     end
 
 
     switch class(comp)
-        %-----------------------------------------------------------------%
+    %------------------------ CONTAINERS ---------------------------------%
         case {'matlab.ui.container.ButtonGroup'    ...
               'matlab.ui.container.Panel'          ...
               'matlab.ui.container.CheckBoxTree'   ...
-              'matlab.ui.container.Tree'           ...
-              'matlab.ui.control.Button'           ...
-              'matlab.ui.control.CheckBox'         ...
+              'matlab.ui.container.Tree'}
+            [p, propertyName] = InputParser({'backgroundColor', 'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
+
+            jsCommand = '';
+            for ii = 1:numel(propertyName)
+                    switch propertyName{ii}
+                        case 'backgroundColor'
+                            jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
+                                                   'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, p.Results.(propertyName{ii}));
+                        otherwise
+                            jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, p.Results.(propertyName{ii}));
+                    end
+            end
+
+
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.container.GridLayout'
+            [p, propertyName] = InputParser({'backgroundColor'}, varargin{:});
+
+            jsCommand = '';
+            for ii = 1:numel(propertyName)
+                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+            end
+
+
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.container.TabGroup'
+            [p, propertyName] = InputParser({'backgroundColor', 'backgroundHeaderColor', 'borderRadius', 'borderWidth', 'borderColor', 'fontFamily', 'fontSize', 'fontWeight', 'color'}, varargin{:});
+
+            jsCommand = '';
+            for ii = 1:numel(propertyName)
+                switch propertyName{ii}
+                    case 'backgroundColor'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', jsCommand, compTag);
+                        for jj = 1:numel(comp.Children)
+                            compChildrenTag = struct(struct(struct(comp.Children(jj)).Controller)).ViewModel.Id;
+                            jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, compChildrenTag, p.Results.(propertyName{ii}));
+                        end
+
+                    case 'backgroundHeaderColor'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[1].style.backgroundColor = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+
+                    case {'borderRadius', 'borderWidth', 'borderColor'}
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, p.Results.(propertyName{ii}));
+                end
+            end
+
+            % Font Properties (iterative process, going through all the tabs)
+            idx = find(cellfun(@(x) ~isempty(x), cellfun(@(x) find(strcmp({'fontFamily', 'fontWeight', 'fontSize', 'color'}, x), 1), propertyName, 'UniformOutput', false)));
+            if ~isempty(idx)
+                jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwTabLabel");\n' ...
+                                       'for (let ii = 1; ii < elements.length; ii++) {\n'], jsCommand, compTag);
+                for ii = idx
+                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propertyName{ii}, p.Results.(propertyName{ii}));
+                end
+                jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
+            end
+
+
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.container.Tab'
+            [p, propertyName] = InputParser({'backgroundColor'}, varargin{:});
+
+            compParentTag = struct(struct(struct(comp.Parent).Controller)).ViewModel.Id;
+
+            jsCommand = '';
+            for ii = 1:numel(propertyName)
+                jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', ...
+                                       'document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n'], jsCommand, compParentTag, compTag, p.Results.(propertyName{ii}));
+            end
+
+
+    %-------------------------- CONTROLS ---------------------------------%
+        case {'matlab.ui.control.Button'           ...
               'matlab.ui.control.DropDown'         ...
               'matlab.ui.control.EditField'        ...
               'matlab.ui.control.ListBox'          ...
               'matlab.ui.control.NumericEditField' ...
               'matlab.ui.control.StateButton'      ...
               'matlab.ui.control.TextArea'}
-            p = inputParser;
-            d = struct('backgroundColor', '#f0f0f0', ...
-                       'borderRadius',    '0px',     ...
-                       'borderWidth',     '1px',     ...
-                       'borderColor',     '#7d7d7d');
-        
-            addParameter(p, 'backgroundColor', d.backgroundColor, @(x) validators.mustBeColor(x, 'hex'))
-            addParameter(p, 'borderRadius',    d.borderRadius,    @(x) validators.mustBeCSSProperty(x, 'border-radius'))
-            addParameter(p, 'borderWidth',     d.borderWidth,     @(x) validators.mustBeCSSProperty(x, 'border-width'))
-            addParameter(p, 'borderColor',     d.borderColor,     @(x) validators.mustBeColor(x, 'hex'))
-                    
-            parse(p, varargin{:});
-            propertyName = setdiff(p.Parameters, p.UsingDefaults);
+            [p, propertyName] = InputParser({'backgroundColor', 'borderRadius', 'borderWidth', 'borderColor', 'text-align', 'fontFamily', 'fontSize', 'fontWeight', 'color'}, varargin{:});
 
             jsCommand = '';
             for ii = 1:numel(propertyName)
-                switch class(comp)
-                    case 'matlab.ui.control.CheckBox'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwCheckBoxRadioIconNode")[0].style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, replace(p.Results.(propertyName{ii}), '%', '%%'));
-
+                switch propertyName{ii}
+                    case 'backgroundColor'
+                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
+                                               'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, p.Results.(propertyName{ii}));
                     otherwise
-                        switch propertyName{ii}
-                            case 'backgroundColor'
-                                jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.%s = "%s";\n' ...
-                                                       'document.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n'], jsCommand, compTag, propertyName{ii}, 'transparent', ...
-                                                                                                                                                    compTag, propertyName{ii}, p.Results.(propertyName{ii}));
-                            otherwise
-                                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n',   jsCommand, compTag, propertyName{ii}, replace(p.Results.(propertyName{ii}), '%', '%%'));
-                        end
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, p.Results.(propertyName{ii}));
                 end
             end
 
 
-        %-----------------------------------------------------------------%
-        case 'matlab.ui.container.GridLayout'
-            p = inputParser;
-            d = struct('backgroundColor', '#f0f0f0');
-        
-            addParameter(p, 'backgroundColor', d.backgroundColor, @(x) validators.mustBeColor(x, 'hex'))
-
-            parse(p, varargin{:});
-            propertyName = setdiff(p.Parameters, p.UsingDefaults);
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.control.Table'
+            [p, propertyName] = InputParser({'backgroundColor', 'backgroundHeaderColor', 'borderRadius', 'borderWidth', 'borderColor', 'fontFamily', 'fontSize', 'fontWeight', 'color'}, varargin{:});
 
             jsCommand = '';
             for ii = 1:numel(propertyName)
-                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, p.Results.(propertyName{ii}));
+                switch propertyName{ii}
+                    case 'backgoundColor'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+
+                    case 'backgroundHeaderColor'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-table-flex-dynamic-item")[0].style.backgroundColor = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+
+                    case {'borderRadius', 'borderWidth', 'borderColor'}
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].children[0].style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, p.Results.(propertyName{ii}));
+                end
+            end
+
+            % Font Properties (iterative process, going through all the columns)
+            idx = find(cellfun(@(x) ~isempty(x), cellfun(@(x) find(strcmp({'fontFamily', 'fontWeight', 'fontSize', 'color'}, x), 1), propertyName, 'UniformOutput', false)));
+            if ~isempty(idx)
+                jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-default-header-cell");\n' ...
+                                       'for (let ii = 0; ii < elements.length; ii++) {\n'], jsCommand, compTag);
+                for ii = idx
+                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propertyName{ii}, p.Results.(propertyName{ii}));
+                end
+                jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
             end
 
 
-        %-----------------------------------------------------------------%
-        case {'matlab.ui.container.TabGroup' ...
-              'matlab.ui.container.Tab'}
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.control.CheckBox'
+            [p, propertyName] = InputParser({'backgroundColor', 'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
 
-            % PROPERTIES:
-            % (A1) headerBackgroundColor
-            % (A2) bodyBackgroundColor
-            % (B) borderRadius
-            % (C) borderWidth
-            % (D) borderColor
-            % (E) fontFamily
-            % (F) fontSize
-            % (G) fontWeight
-            % (H) color
-
-            % backgroundColor (HEADER)
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').children[1].style.backgroundColor = '#f0f0f0' % PADRÃO DO MATLAB (FICA BONITO)
-
-            % backgroundColor (BODY)
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').style.backgroundColor = 'transparent'; % TABGROUP
-            % document.querySelector('div[data-tag="e81e2523-3f56-4f32-b52b-db4c3318da45"]').style.backgroundColor = 'transparent'; % TAB1 (CONFIGURÁVEL NO R2023A)
-
-            % BORDER CUSTOMIZATION
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').style.borderRadius = '10px'; % TABGROUP
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').style.borderWidth = '1px';   % TABGROUP
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').style.borderColor = 'black'; % TABGROUP
-
-            % Font: o elemento [0] É UM IDENTIFICADOR DO TABGROUP, DEVE SER DESCARTADO. ITERAR A PARTIR DO ELEMENTO [1]...
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').getElementsByClassName("mwTabLabel")[2].style.fontFamily = "Courier";
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').getElementsByClassName("mwTabLabel")[2].style.fontSize   = "11px";
-            % document.querySelector('div[data-tag="2a54bc5c-4609-40f5-bfb2-3413ff664849"]').getElementsByClassName("mwTabLabel")[2].style.color      = "red"; (CONFIGURÁVEL NO R2023A)
+            jsCommand = '';
+            for ii = 1:numel(propertyName)
+                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwCheckBoxRadioIconNode")[0].style.%s = "%s";\n', jsCommand, compTag, propertyName{ii}, p.Results.(propertyName{ii}));
+            end
 
 
-
-        %-----------------------------------------------------------------%
-        case 'matlab.ui.control.Table'
-
-            % PROPERTIES:
-            % (A) bodyBackgroundColor
-            % (B) borderRadius
-            % (C) borderWidth
-            % (D) borderColor
-            % (E) fontFamily (HEADER)
-            % (F) fontSize
-            % (G) fontWeight
-            % (H) color
-
-            % % HEADER Background Customization
-            % document.querySelector('div[data-tag="009059e0-eff4-4556-995f-43f56c0bea63"]').getElementsByClassName("mw-table-flex-dynamic-item")[0].style.backgroundColor
-            % = 'red';
-
-            % % BODY Background Customization
-            % document.querySelector('div[data-tag="a5159436-5b01-4cde-8d3d-9ec2d6f386ff"]').children[0].style.backgroundColor = 'transparent';
-
-            % % Border Customization
-            % document.querySelector('div[data-tag="a5159436-5b01-4cde-8d3d-9ec2d6f386ff"]').children[0].children[0].style.borderWidth  = '1px';
-            % document.querySelector('div[data-tag="a5159436-5b01-4cde-8d3d-9ec2d6f386ff"]').children[0].children[0].style.borderRadius = '10px';
-            % document.querySelector('div[data-tag="a5159436-5b01-4cde-8d3d-9ec2d6f386ff"]').children[0].children[0].style.borderColor  = 'blue';
-            % 
-            % % Font Customization (table header)
-            % var elements = document.querySelector('div[data-tag="a5159436-5b01-4cde-8d3d-9ec2d6f386ff"]').getElementsByClassName("mw-default-header-cell");
-            % 
-            % for (let ii = 0; ii < elements.length; ii++) {
-            %   elements[ii].style.fontFamily = "Courier";
-            %   elements[ii].style.fontSize   = "16px";
-            %   elements[ii].style.fontWeight = "16px"; % NÃO TESTADO
-            %   elements[ii].style.color      = "red";  % NÃO TESTADO
-            % }
-            % elements = undefined;
-
-
-        %-----------------------------------------------------------------%
+    %---------------------------------------------------------------------%
         case 'matlab.ui.control.Slider'
+            [p, propertyName] = InputParser({'backgroundColor', 'sliderRotate', 'sliderHeight'}, varargin{:});
 
-            % PROPERTIES:
-            % (A) backgroundColor
-            % (B) rotate
-            % (C) height
+            jsCommand = '';
+            for ii = 1:numel(propertyName)
+                switch propertyName{ii}
+                    case 'backgoundColor'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderTrack")[0].style.backgroundColor = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+                    case 'trackHeight'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderTrack")[0].style.height = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+                    case 'thumbRotate'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderThumb")[0].style.rotate = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+                    case 'thumbHeight'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderThumb")[0].style.height = "%s";\n', jsCommand, compTag, p.Results.(propertyName{ii}));
+                end
+            end
 
-            % document.querySelector('div[data-tag="ba1f4133-b633-4069-85e0-7f5e86ff4f04"]').getElementsByClassName("mwSliderThumb")[0].style.rotate = '180deg';
-            % document.querySelector('div[data-tag="ba1f4133-b633-4069-85e0-7f5e86ff4f04"]').getElementsByClassName("mwSliderThumb")[0].style.height = '9px';
-            % document.querySelector('div[data-tag="ba1f4133-b633-4069-85e0-7f5e86ff4f04"]').getElementsByClassName("mwSliderTrack")[0].style.backgroundColor = '#f0f0f0';
+
+    %---------------------------------------------------------------------%
+        otherwise
+            error('ccTools does not cover the customization of ''%s'' class properties.', class(comp))
     end
 
 
     % JS
     try
+        jsCommand
         fWebWin.executeJS(jsCommand);
         
     catch ME
         status   = false;
         errorMsg = getReport(ME);
     end
+end
+
+
+function [p, propertyName] = InputParser(propertyList, varargin)
+    
+    p = inputParser;
+    d = struct();
+
+    for ii = 1:numel(propertyList)
+        switch(propertyList{ii})
+            % BackgroundColor
+            case 'backgroundColor';       d.backgroundColor = '#f0f0f0';   addParameter(p, 'backgroundColor',       d.backgroundColor, @(x) ccTools.validators.mustBeColor(x, 'hex'))
+            case 'backgroundHeaderColor'; d.backgroundColor = '#f0f0f0';   addParameter(p, 'backgroundHeaderColor', d.backgroundColor, @(x) ccTools.validators.mustBeColor(x, 'hex'))
+
+            % Border
+            case 'borderRadius';          d.borderRadius    = '0px';       addParameter(p, 'borderRadius',          d.borderRadius,    @(x) ccTools.validators.mustBeCSSProperty(x, 'border-radius'))
+            case 'borderWidth';           d.borderWidth     = '1px';       addParameter(p, 'borderWidth',           d.borderWidth,     @(x) ccTools.validators.mustBeCSSProperty(x, 'border-width'))
+            case 'borderColor';           d.borderColor     = '#d7d7d7';   addParameter(p, 'borderColor',           d.borderColor,     @(x) ccTools.validators.mustBeColor(x, 'hex'))
+
+            % Font
+            case 'textAlign';             d.textAlign       = 'left';      addParameter(p, 'textAlign',             d.textAlign,       @(x) ccTools.validators.mustBeCSSProperty(x, 'text-align'))
+            case 'fontFamily';            d.fontFamily      = 'Helvetica'; addParameter(p, 'fontFamily',            d.fontFamily,      @(x) ccTools.validators.mustBeCSSProperty(x, 'font-family'))
+            case 'fontWeight';            d.fontWeight      = 'normal';    addParameter(p, 'fontWeight',            d.fontWeight,      @(x) ccTools.validators.mustBeCSSProperty(x, 'font-weight'))
+            case 'fontSize';              d.fontSize        = '12px';      addParameter(p, 'fontSize',              d.fontSize,        @(x) ccTools.validators.mustBeCSSProperty(x, 'font-size'))
+            case 'color';                 d.color           = "#000000";   addParameter(p, 'color',                 d.color,           @(x) ccTools.validators.mustBeColor(x, 'hex'))
+
+            % Track and thumb (Slider)
+            case 'trackHeight';          d.trackHeight      = '3px';       addParameter(p, 'trackHeight',           d.trackHeight,      @(x) ccTools.validators.mustBeCSSProperty(x, 'height'))
+            case 'thumbRotate';          d.thumbRotate      = '0deg';      addParameter(p, 'thumbRotate',           d.thumbRotate,      @(x) ccTools.validators.mustBeCSSProperty(x, 'rotate'))
+            case 'thumbHeight';          d.thumbHeight      = '15px';      addParameter(p, 'thumbHeight',           d.thumbHeight,      @(x) ccTools.validators.mustBeCSSProperty(x, 'height'))
+        end
+    end
+            
+    parse(p, varargin{:});
+    propertyName = setdiff(p.Parameters, p.UsingDefaults);
+
 end
