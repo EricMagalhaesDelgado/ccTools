@@ -10,7 +10,7 @@ function mustBeColor(x, Format)
 % See also VALIDATECOLOR
 
 % Author.: Eric Magalhães Delgado
-% Date...: May 12, 2023
+% Date...: June 06, 2023
 % Version: 1.00
 
     arguments
@@ -49,10 +49,10 @@ function mustBeColor(x, Format)
                     Fcn = @(x) ismember(lower(x), cssColorList);
 
                     if ~Fcn(x)
-                        error('Input must be a CSS font name, such as: "blue" | "gray" | "white"');
+                        error('Input must be a CSS font name, such as: "blue" | "gray" | "white" | "transparent"');
                     end            
                 else
-                    error('Input must be a CSS font name, such as: "blue" | "gray" | "white"');
+                    error('Input must be a CSS font name, such as: "blue" | "gray" | "white" | "transparent"');
                 end
 
             case 'all'        
@@ -65,10 +65,10 @@ function mustBeColor(x, Format)
                     end
                     
                     if ~Fcn(x)
-                        error('Input is not a valid color, such as: "red" | "#FF0000" | uint8([255,0,0]) | [.5,.5,.5]');
+                        error('Input is not a valid color, such as: "red" | "transparent" | "#FF0000" | uint8([255,0,0]) | [.5,.5,.5]');
                     end            
                 else
-                    error('Input is not a valid color, such as: "red" | "#FF0000" | uint8([255,0,0]) | [.5,.5,.5]');
+                    error('Input is not a valid color, such as: "red" | "transparent" | "#FF0000" | uint8([255,0,0]) | [.5,.5,.5]');
                 end
         end
 
@@ -94,5 +94,5 @@ function Colors = cssColorList
     "orange", "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred", "papayawhip", "peachpuff",        ...
     "peru", "pink", "plum", "powderblue", "purple", "rebeccapurple", "red", "rosybrown", "royalblue", "saddlebrown", "salmon",         ...
     "sandybrown", "seagreen", "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow", "springgreen", ...
-    "steelblue", "tan", "teal", "thistle", "tomato", "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"];
+    "steelblue", "tan", "teal", "thistle", "tomato", "transparent", "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"];
 end
