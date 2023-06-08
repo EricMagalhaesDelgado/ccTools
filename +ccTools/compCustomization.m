@@ -8,16 +8,13 @@ function [status, errorMsg] = compCustomization(comp, varargin)
         varargin
     end
 
-    warning('off', 'MATLAB:structOnObject')
-    warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
     status   = true;
     errorMsg = '';
-
-    fHandle  = ancestor(comp, 'figure');
-    fWebWin  = struct(struct(struct(fHandle).Controller).PlatformHost).CEF;
-
-    compTag  = struct(struct(struct(comp).Controller)).ViewModel.Id;
+    
+    % compatibility warning
+    if ~ismember(version('-release'), {'2021b', '2022a', '2022b', '2023a'})
+        warning('ccTools.compCustomization was tested only in three MATLAB releases (R2021b, R2022b and R2023a).')
+    end
 
     % nargin validation
     if nargin == 1
@@ -26,55 +23,67 @@ function [status, errorMsg] = compCustomization(comp, varargin)
         error('Name-value parameters must be in pairs.')
     end
 
+    warning('off', 'MATLAB:structOnObject')
+    warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
+    
+    % main variables
+    fHandle = ancestor(comp, 'figure');
+    
+    tic; t = toc;
+    while t < 5
+        try
+            fWebWin = struct(struct(struct(fHandle).Controller).PlatformHost).CEF;
+            break
+        catch
+            pause(.1); t = toc;
+        end
+    end
+    
+    compTag = ComponentID(comp);
+
     % customizations...
     switch class(comp)
-    %------------------------- UIFIGURE ----------------------------------%
-        case 'matlab.ui.Figure' % OK
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.Figure'
             propStruct = InputParser({'windowMinSize'}, varargin{:});
 
             for ii = 1:numel(propStruct)
                 switch propStruct(ii).name
                     case 'windowMinSize'
-                        fWebWin.setMinSize(propStruct(ii).value)
+                        try
+                            fWebWin.setMinSize(propStruct(ii).value)
+                        catch  ME
+                            status   = false;
+                            errorMsg = getReport(ME);
+                        end
+                        return
                 end
             end
 
 
-    %------------------------ CONTAINERS ---------------------------------%
-        case {'matlab.ui.container.ButtonGroup'    ... % OK
-              'matlab.ui.container.Panel'          ... % OK
-              'matlab.ui.container.CheckBoxTree'   ... % OK
-              'matlab.ui.container.Tree'}              % OK
+    %---------------------------------------------------------------------%
+        case {'matlab.ui.container.ButtonGroup',  ...
+              'matlab.ui.container.CheckBoxTree', ...
+              'matlab.ui.container.Panel',        ...
+              'matlab.ui.container.Tree'}
             propStruct = InputParser({'backgroundColor', ...
                                       'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
 
             jsCommand = '';
             for ii = 1:numel(propStruct)
-                switch propStruct(ii).name
-                    case 'backgroundColor'
-                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
-                                               'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, propStruct(ii).value);
-                    otherwise
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
-                end
+                jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.%s = "%s";\n' ...
+                                       'document.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n'], jsCommand, compTag, propStruct(ii).name, propStruct(ii).value, compTag, propStruct(ii).name, propStruct(ii).value);
             end
 
 
     %---------------------------------------------------------------------%
-        case 'matlab.ui.container.GridLayout' % OK
+        case 'matlab.ui.container.GridLayout'
             propStruct = InputParser({'backgroundColor'}, varargin{:});
-
-            jsCommand = '';
-            for ii = 1:numel(propStruct)
-                switch propStruct(ii).name
-                    case 'backgroundColor'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, compTag, propStruct(ii).value);
-                end
-            end
+            jsCommand  = sprintf('document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', compTag, propStruct.value);
 
 
     %---------------------------------------------------------------------%
-        case 'matlab.ui.container.TabGroup' % OK
+        case 'matlab.ui.container.TabGroup'
             propStruct = InputParser({'backgroundColor', 'backgroundHeaderColor',   ...
                                       'borderRadius', 'borderWidth', 'borderColor', ...
                                       'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, varargin{:});
@@ -83,10 +92,11 @@ function [status, errorMsg] = compCustomization(comp, varargin)
             for ii = 1:numel(propStruct)
                 switch propStruct(ii).name
                     case 'backgroundColor'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', jsCommand, compTag);
+                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
+                                               'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "transparent"\n'], jsCommand, compTag, compTag);
                         for jj = 1:numel(comp.Children)
-                            compChildrenTag = struct(struct(struct(comp.Children(jj)).Controller)).ViewModel.Id;
-                            jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, compChildrenTag, propStruct(ii).value);
+                            ChildrenTag = ComponentID(comp.Children(jj));
+                            jsCommand   = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, ChildrenTag, propStruct(ii).value);
                         end
 
                     case 'backgroundHeaderColor'
@@ -111,24 +121,33 @@ function [status, errorMsg] = compCustomization(comp, varargin)
 
 
     %---------------------------------------------------------------------%
-        case 'matlab.ui.container.Tab' % OK
+        case 'matlab.ui.container.Tab'
             propStruct = InputParser({'backgroundColor'}, varargin{:});
+            ParentTag  = ComponentID(comp.Parent);
+            jsCommand  = sprintf(['document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', ...
+                                  'document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n'], ParentTag, compTag, propStruct.value);
 
-            compParentTag = struct(struct(struct(comp.Parent).Controller)).ViewModel.Id;
+
+    %---------------------------------------------------------------------%
+        case {'matlab.ui.control.Button',           ...
+              'matlab.ui.control.DropDown',         ...
+              'matlab.ui.control.EditField',        ...
+              'matlab.ui.control.ListBox',          ...
+              'matlab.ui.control.NumericEditField', ...
+              'matlab.ui.control.StateButton'}
+            propStruct = InputParser({'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
+
             jsCommand = '';
             for ii = 1:numel(propStruct)
-                jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', ...
-                                       'document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n'], jsCommand, compParentTag, compTag, propStruct(ii).value);
+                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
             end
 
 
-    %-------------------------- CONTROLS ---------------------------------%
-        case {'matlab.ui.control.Button'  ...  % OK              
-              'matlab.ui.control.ListBox' ...  % OK
-              'matlab.ui.control.StateButton'} % OK
-            propStruct = InputParser({'backgroundColor', ...
+    %---------------------------------------------------------------------%
+        case 'matlab.ui.control.TextArea'
+            propStruct = InputParser({'backgroundColor',                            ...
                                       'borderRadius', 'borderWidth', 'borderColor', ...
-                                      'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, varargin{:});
+                                      'textAlign'}, varargin{:});
 
             jsCommand = '';
             for ii = 1:numel(propStruct)
@@ -136,6 +155,10 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                     case 'backgroundColor'
                         jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
                                                'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, propStruct(ii).value);
+
+                    case 'textAlign'
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByTagName("textarea")[0].style.textAlign = "%s";\n', jsCommand, compTag, propStruct(ii).value);
+                    
                     otherwise
                         jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
                 end
@@ -143,46 +166,18 @@ function [status, errorMsg] = compCustomization(comp, varargin)
 
 
     %---------------------------------------------------------------------%
-        case {'matlab.ui.control.DropDown', ...     % OK
-              'matlab.ui.control.EditField' ...     % OK
-              'matlab.ui.control.NumericEditField'} % OK
-            propStruct = InputParser({'backgroundColor', ...
+        case 'matlab.ui.control.CheckBox'
+            propStruct = InputParser({'backgroundColor',                            ...
                                       'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
 
             jsCommand = '';
             for ii = 1:numel(propStruct)
-                switch propStruct(ii).name
-                    case 'backgroundColor'
-                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
-                                               'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, propStruct(ii).value);
-                    otherwise
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
-                end
+                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwCheckBoxRadioIconNode")[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
             end
 
 
     %---------------------------------------------------------------------%
-        case 'matlab.ui.control.TextArea' % OK
-            propStruct = InputParser({'backgroundColor', ...
-                                      'borderRadius', 'borderWidth', 'borderColor', ...
-                                      'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color', 'textAlign'}, varargin{:});
-
-            jsCommand = '';
-            for ii = 1:numel(propStruct)
-                switch propStruct(ii).name
-                    case 'backgroundColor'
-                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
-                                               'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, propStruct(ii).value);
-                    case {'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color', 'textAlign'}
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByTagName("textarea")[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
-                    otherwise
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
-                end
-            end
-
-
-    %---------------------------------------------------------------------%
-        case 'matlab.ui.control.Table' % PENDENTE BACKGROUNDCOLOR, BORDERRADIUS, BORDERWIDTH & BORDERCOLOR
+        case 'matlab.ui.control.Table'
             propStruct = InputParser({'backgroundColor', 'backgroundHeaderColor',   ...
                                       'borderRadius', 'borderWidth', 'borderColor', ...
                                       'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, varargin{:});
@@ -190,13 +185,18 @@ function [status, errorMsg] = compCustomization(comp, varargin)
             jsCommand = '';
             for ii = 1:numel(propStruct)
                 switch propStruct(ii).name
-                    case 'backgoundColor'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "%s";\n', jsCommand, compTag, propStruct(ii).value);
+                    case 'backgroundColor'
+                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "transparent";\n' ...
+                                               'document.querySelector(''div[data-tag="%s"]'').children[0].children[0].style.backgroundColor = "%s";\n'], jsCommand, compTag, compTag, propStruct(ii).value);
 
                     case 'backgroundHeaderColor'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-table-flex-dynamic-item")[0].style.backgroundColor = "%s";\n', jsCommand, compTag, propStruct(ii).value);
+                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].children[0].children[0].style.backgroundColor = "%s";\n', jsCommand, compTag, propStruct(ii).value);
 
-                    case {'borderRadius', 'borderWidth', 'borderColor'}
+                    case 'borderRadius'
+                        jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').children[0].style.borderRadius = "%s";\n'             ...
+                                               'document.querySelector(''div[data-tag="%s"]'').children[0].children[0].style.borderRadius = "%s";\n'], jsCommand, compTag, propStruct(ii).value, compTag, propStruct(ii).value);
+
+                    case {'borderWidth', 'borderColor'}
                         jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').children[0].children[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
                 end
             end
@@ -214,49 +214,15 @@ function [status, errorMsg] = compCustomization(comp, varargin)
 
 
     %---------------------------------------------------------------------%
-        case 'matlab.ui.control.CheckBox' % OK
-            propStruct = InputParser({'backgroundColor', ...
-                                      'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
-
-            jsCommand = '';
-            for ii = 1:numel(propStruct)
-                jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwCheckBoxRadioIconNode")[0].style.%s = "%s";\n', jsCommand, compTag, propStruct(ii).name, propStruct(ii).value);
-            end
-
-
-    %---------------------------------------------------------------------%
-        case 'matlab.ui.control.Slider' % OK
-            propStruct = InputParser({'backgroundColor', ...
-                                      'trackHeight', 'thumbRotate', 'thumbHeight'}, varargin{:});
-
-            jsCommand = '';
-            for ii = 1:numel(propStruct)
-                switch propStruct(ii).name
-                    case 'backgroundColor'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderTrack")[0].style.backgroundColor = "%s";\n', jsCommand, compTag, propStruct(ii).value);
-                    case 'trackHeight'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderTrack")[0].style.height = "%s";\n', jsCommand, compTag, propStruct(ii).value);
-                    case 'thumbRotate'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderThumb")[0].style.rotate = "%s";\n', jsCommand, compTag, propStruct(ii).value);
-                    case 'thumbHeight'
-                        jsCommand = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mwSliderThumb")[0].style.height = "%s";\n', jsCommand, compTag, propStruct(ii).value);
-                end
-            end
-
-
-    %---------------------------------------------------------------------%
         otherwise
             error('ccTools does not cover the customization of ''%s'' class properties.', class(comp))
     end
 
 
     % JS
+    pause(.001)
     try
-        if exist('jsCommand', 'var')
-            pause(.001)
-            fWebWin.executeJS(jsCommand);
-        end
-        
+        fWebWin.executeJS(jsCommand);     
     catch ME
         status   = false;
         errorMsg = getReport(ME);
@@ -264,37 +230,43 @@ function [status, errorMsg] = compCustomization(comp, varargin)
 end
 
 
-function propStruct = InputParser(propList, varargin)
-    
+function compTag = ComponentID(comp)
+    releaseVersion = version('-release');
+    releaseYear    = str2double(releaseVersion(1:4));
+
+    if releaseYear <= 2022
+        compTag = struct(comp).Controller.ProxyView.PeerNode.Id;
+    else
+        compTag = struct(comp).Controller.ViewModel.Id;
+    end
+end
+
+
+function propStruct = InputParser(propList, varargin)    
     p = inputParser;
-    d = struct();
+    d = [];
 
     for ii = 1:numel(propList)
         switch(propList{ii})
             % Window
-            case 'windowMinSize';         d.windowMinSize   = []; addParameter(p, 'windowMinSize',         d.windowMinSize,   @(x) ccTools.validators.mustBeNumericArray(x, 2, 'NonNegativeInteger'))
+            case 'windowMinSize';         addParameter(p, 'windowMinSize',         d, @(x) ccTools.validators.mustBeNumericArray(x, 2, 'NonNegativeInteger'))
 
             % BackgroundColor
-            case 'backgroundColor';       d.backgroundColor = []; addParameter(p, 'backgroundColor',       d.backgroundColor, @(x) ccTools.validators.mustBeColor(x, 'all'))
-            case 'backgroundHeaderColor'; d.backgroundColor = []; addParameter(p, 'backgroundHeaderColor', d.backgroundColor, @(x) ccTools.validators.mustBeColor(x, 'all'))
+            case 'backgroundColor';       addParameter(p, 'backgroundColor',       d, @(x) ccTools.validators.mustBeColor(x, 'all'))
+            case 'backgroundHeaderColor'; addParameter(p, 'backgroundHeaderColor', d, @(x) ccTools.validators.mustBeColor(x, 'all'))
 
             % Border
-            case 'borderRadius';          d.borderRadius    = []; addParameter(p, 'borderRadius',          d.borderRadius,    @(x) ccTools.validators.mustBeCSSProperty(x, 'border-radius'))
-            case 'borderWidth';           d.borderWidth     = []; addParameter(p, 'borderWidth',           d.borderWidth,     @(x) ccTools.validators.mustBeCSSProperty(x, 'border-width'))
-            case 'borderColor';           d.borderColor     = []; addParameter(p, 'borderColor',           d.borderColor,     @(x) ccTools.validators.mustBeColor(x, 'all'))
+            case 'borderRadius';          addParameter(p, 'borderRadius',          d, @(x) ccTools.validators.mustBeCSSProperty(x, 'border-radius'))
+            case 'borderWidth';           addParameter(p, 'borderWidth',           d, @(x) ccTools.validators.mustBeCSSProperty(x, 'border-width'))
+            case 'borderColor';           addParameter(p, 'borderColor',           d, @(x) ccTools.validators.mustBeColor(x, 'all'))
 
             % Font
-            case 'textAlign';             d.textAlign       = []; addParameter(p, 'textAlign',             d.textAlign,       @(x) ccTools.validators.mustBeCSSProperty(x, 'text-align'))
-            case 'fontFamily';            d.fontFamily      = []; addParameter(p, 'fontFamily',            d.fontFamily,      @(x) ccTools.validators.mustBeCSSProperty(x, 'font-family'))
-            case 'fontStyle';             d.fontStyle       = []; addParameter(p, 'fontStyle',             d.fontStyle,       @(x) ccTools.validators.mustBeCSSProperty(x, 'font-style'))
-            case 'fontWeight';            d.fontWeight      = []; addParameter(p, 'fontWeight',            d.fontWeight,      @(x) ccTools.validators.mustBeCSSProperty(x, 'font-weight'))
-            case 'fontSize';              d.fontSize        = []; addParameter(p, 'fontSize',              d.fontSize,        @(x) ccTools.validators.mustBeCSSProperty(x, 'font-size'))
-            case 'color';                 d.color           = []; addParameter(p, 'color',                 d.color,           @(x) ccTools.validators.mustBeColor(x, 'all'))
-
-            % Track and thumb (Slider)
-            case 'trackHeight';           d.trackHeight     = []; addParameter(p, 'trackHeight',           d.trackHeight,     @(x) ccTools.validators.mustBeCSSProperty(x, 'height'))
-            case 'thumbRotate';           d.thumbRotate     = []; addParameter(p, 'thumbRotate',           d.thumbRotate,     @(x) ccTools.validators.mustBeCSSProperty(x, 'rotate'))
-            case 'thumbHeight';           d.thumbHeight     = []; addParameter(p, 'thumbHeight',           d.thumbHeight,     @(x) ccTools.validators.mustBeCSSProperty(x, 'height'))
+            case 'textAlign';             addParameter(p, 'textAlign',             d, @(x) ccTools.validators.mustBeCSSProperty(x, 'text-align'))
+            case 'fontFamily';            addParameter(p, 'fontFamily',            d, @(x) ccTools.validators.mustBeCSSProperty(x, 'font-family'))
+            case 'fontStyle';             addParameter(p, 'fontStyle',             d, @(x) ccTools.validators.mustBeCSSProperty(x, 'font-style'))
+            case 'fontWeight';            addParameter(p, 'fontWeight',            d, @(x) ccTools.validators.mustBeCSSProperty(x, 'font-weight'))
+            case 'fontSize';              addParameter(p, 'fontSize',              d, @(x) ccTools.validators.mustBeCSSProperty(x, 'font-size'))
+            case 'color';                 addParameter(p, 'color',                 d, @(x) ccTools.validators.mustBeColor(x, 'all'))
         end
     end
             
@@ -317,5 +289,4 @@ function propStruct = InputParser(propList, varargin)
         propStruct(ll) = struct('name',  propName{ll}, ...
                                 'value', propValue);
     end
-
 end
