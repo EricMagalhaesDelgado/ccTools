@@ -256,7 +256,7 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
 
             switch comp.Model
                 case {'IconPlusText', 'Icon'}
-                    [imgFormat, imgBase64] = ccTools.fcn.img2base64(comp.Icon);
+                    [imgFormat, imgBase64] = ccTools.fcn.img2base64(comp.Icon, 'ccTools.Button');
                     htmlIcon = htmlBodyTemplate_Aux(comp, 'Icon', {imgFormat, imgBase64});
     
                     switch comp.Model

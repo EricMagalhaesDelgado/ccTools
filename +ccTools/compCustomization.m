@@ -27,19 +27,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
     
     % main variables
-    fHandle = ancestor(comp, 'figure');
-    
-    tic; t = toc;
-    while t < 5
-        try
-            fWebWin = struct(struct(struct(fHandle).Controller).PlatformHost).CEF;
-            break
-        catch
-            pause(.1); t = toc;
-        end
-    end
-    
-    compTag = ComponentID(comp);
+    [webWin, compTag] = ccTools.fcn.componentInfo(comp);
 
     % customizations...
     switch class(comp)
@@ -51,7 +39,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                 switch propStruct(ii).name
                     case 'windowMinSize'
                         try
-                            fWebWin.setMinSize(propStruct(ii).value)
+                            webWin.setMinSize(propStruct(ii).value)
                         catch  ME
                             status   = false;
                             errorMsg = getReport(ME);
@@ -95,7 +83,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                         jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
                                                'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "transparent"\n'], jsCommand, compTag, compTag);
                         for jj = 1:numel(comp.Children)
-                            ChildrenTag = ComponentID(comp.Children(jj));
+                            ChildrenTag = ccTools.fcn.componentDataTag(comp.Children(jj));
                             jsCommand   = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, ChildrenTag, propStruct(ii).value);
                         end
 
@@ -123,7 +111,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     %---------------------------------------------------------------------%
         case 'matlab.ui.container.Tab'
             propStruct = InputParser({'backgroundColor'}, varargin{:});
-            ParentTag  = ComponentID(comp.Parent);
+            ParentTag  = ccTools.fcn.componentDataTag(comp.Parent);
             jsCommand  = sprintf(['document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', ...
                                   'document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n'], ParentTag, compTag, propStruct.value);
 
@@ -222,22 +210,10 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     % JS
     pause(.001)
     try
-        fWebWin.executeJS(jsCommand);     
+        webWin.executeJS(jsCommand);     
     catch ME
         status   = false;
         errorMsg = getReport(ME);
-    end
-end
-
-
-function compTag = ComponentID(comp)
-    releaseVersion = version('-release');
-    releaseYear    = str2double(releaseVersion(1:4));
-
-    if releaseYear <= 2022
-        compTag = struct(comp).Controller.ProxyView.PeerNode.Id;
-    else
-        compTag = struct(comp).Controller.ViewModel.Id;
     end
 end
 

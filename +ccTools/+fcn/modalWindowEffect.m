@@ -4,7 +4,7 @@ function modalWindowEffect(fig, opacityType)
 % created by uialert, uiconfirm and uiprogressdlg.
 
 % Author.: Eric Magalhães Delgado
-% Date...: May 12, 2023
+% Date...: June 16, 2023
 % Version: 1.00
 
     arguments
@@ -22,18 +22,12 @@ function modalWindowEffect(fig, opacityType)
         switch opacityType
             case 'modalWindow'
                 if isempty(h)
-                    matRelease = char(regexp(version, 'R\d{4}[ab]{1}', 'match'));
-                    switch matRelease
-                        case 'R2021b'; BackgroundColor = 'rgba(0, 0, 0, .64)';
-                        case 'R2023a'; BackgroundColor = 'rgba(255, 255, 255, .64)';
-                        otherwise;     BackgroundColor = 'rgba(255, 255, 255, .64)'; % Pendente olhar outras versões...
-                    end
-        
-                     uihtml(fig, 'HTMLSource', sprintf('<!DOCTYPE html>\n<html>\n<body style="background-color: %s;"></body>\n</html>', BackgroundColor), ...
-                                 'Tag',        'StandByMode',                                  ...
-                                 'UserData',   struct('ID', char(java.rmi.server.UID),         ...
-                                                      'WindowResize', char(fig.Resize)), ...
-                                 'Position',   [1, 1, fig.Position(3:4)]);
+                    color = ccTools.fcn.defaultBackgroundColor();        
+                    uihtml(fig, 'HTMLSource', sprintf('<!DOCTYPE html>\n<html>\n<body style="background-color: %s;"></body>\n</html>', color), ...
+                                'Tag',        'StandByMode',                                  ...
+                                'UserData',   struct('ID', char(java.rmi.server.UID),         ...
+                                                     'WindowResize', char(fig.Resize)), ...
+                                'Position',   [1, 1, fig.Position(3:4)]);
                     fig.Resize = 'off';
                 end
     
@@ -45,6 +39,6 @@ function modalWindowEffect(fig, opacityType)
                     delete(h)
                 end
         end
-        drawnow nocallbacks
+        drawnow
     end
 end

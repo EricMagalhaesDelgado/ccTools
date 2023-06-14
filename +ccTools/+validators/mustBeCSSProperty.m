@@ -14,7 +14,7 @@ function mustBeCSSProperty(x, PropertyName)
 
     arguments
         x
-        PropertyName char {mustBeMember(PropertyName, {'border-radius', 'border-width', 'font-family', 'font-weight', 'font-size', 'font-style', 'text-align', 'height', 'rotate'})} = 'border-radius'
+        PropertyName char {mustBeMember(PropertyName, {'border-radius', 'border-width', 'font-family', 'font-weight', 'font-size', 'font-style', 'text-align', 'width', 'height', 'rotate', 'size'})} = 'border-radius'
     end
 
     try
@@ -35,7 +35,7 @@ function mustBeCSSProperty(x, PropertyName)
                     error(errorMessage(PropertyName))
                 end
 
-            case {'border-width', 'font-size', 'height'}
+            case {'border-width', 'font-size', 'width', 'height', 'size'}
                 if ischar(x) || (isstring(x) && isscalar(x))
                     y = char(regexpi(x, '\d+px', 'match'));
                     if ~strcmpi(x, y)
@@ -84,7 +84,7 @@ function msg = errorMessage(PropertyName)
     switch PropertyName
         case 'border-radius'
             msg = sprintf('Property "%s" is not valid! Input must be textual - char or scalar string - such as: "50px" | "50%%".', PropertyName);
-        case {'border-width', 'font-size', 'height'}
+        case {'border-width', 'font-size', 'width', 'height', 'size'}
             msg = sprintf('Property "%s" is not valid! Input must be textual - char or scalar string - such as: "0px" | "1px".', PropertyName);
         case 'font-family'
             msg = sprintf('Property "%s" is not valid! Input must be textual - char or scalar string - such as: "Helvetica" | "Times New Roman".', PropertyName);

@@ -1,10 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
+// zIndex
+var zIndex = 1000;
+var objList = document.querySelectorAll('div[role="dialog"]');
+objList.forEach(element => {
+    let idx = parseInt(element.style.zIndex);
+    zIndex = (zIndex < idx ? idx : zIndex);
+});
+objList = undefined;
+
+// Elements creation
+let s<uniqueSuffix> = document.createElement("style");
+let u<uniqueSuffix> = document.createElement("div");
+let w<uniqueSuffix> = document.createElement("div");
+
+document.head.appendChild(s<uniqueSuffix>);
+%s
+
+s<uniqueSuffix>.setAttribute("data-type", "ccTools.ProgressDialog");
+u<uniqueSuffix>.setAttribute("data-type", "ccTools.ProgressDialog");
+w<uniqueSuffix>.setAttribute("data-type", "ccTools.ProgressDialog");
+
+s<uniqueSuffix>.setAttribute("data-tag", "%s");
+u<uniqueSuffix>.setAttribute("data-tag", "%s");
+w<uniqueSuffix>.setAttribute("data-tag", "%s");
+
+// CSS
+s<uniqueSuffix>.innerHTML = `
     :root {
-      --sk-size: 40px;
-      --sk-color: #d95319;
+      --sk-size: %s;
+      --sk-color: %s;
     }
     
     .sk-chase {
@@ -61,20 +84,25 @@
         transform: scale(1.0); 
       } 
     }
-  </style>
+`;
 
-  <style>
-    .example {
-  	    position: absolute;
-  	    top: 50%%;
-  	    left: 50%%;
-  	    transform: translate(-50%%, -50%%);
-    }
-  </style>
-</head>
+// Background layer
+u<uniqueSuffix>.setAttribute("class", "backgroundLayer");
+u<uniqueSuffix>.style.position  = "absolute";
+u<uniqueSuffix>.style.left      = "0%%";
+u<uniqueSuffix>.style.top       = "0%%";
+u<uniqueSuffix>.style.width     = "100%%";
+u<uniqueSuffix>.style.height    = "100%%";
+u<uniqueSuffix>.style.zIndex    = zIndex+1;
 
-<body style="background-color: rgb(255, 255 ,255, %.1f);">
-  <div class="example">
+// Progress dialog
+w<uniqueSuffix>.setAttribute("role", "dialog");
+w<uniqueSuffix>.style.position  = "absolute";
+w<uniqueSuffix>.style.left      = "50%%";
+w<uniqueSuffix>.style.top       = "50%%";
+w<uniqueSuffix>.style.transform = "translate(-50%%, -50%%)";
+w<uniqueSuffix>.style.zIndex    = zIndex+2;
+w<uniqueSuffix>.innerHTML       = `
     <div class="sk-chase">
       <div class="sk-chase-dot"></div>
       <div class="sk-chase-dot"></div>
@@ -83,6 +111,4 @@
       <div class="sk-chase-dot"></div>
       <div class="sk-chase-dot"></div>
     </div>
-  </div>
-</body>
-</html>
+`;
