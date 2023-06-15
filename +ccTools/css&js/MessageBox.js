@@ -17,12 +17,12 @@ document.body.appendChild(w<uniqueSuffix>);
 document.body.appendChild(s<uniqueSuffix>);
 
 u<uniqueSuffix>.setAttribute("data-type", "ccTools.MessageBox");
-s<uniqueSuffix>.setAttribute("data-type", "ccTools.MessageBox");
 w<uniqueSuffix>.setAttribute("data-type", "ccTools.MessageBox");
+s<uniqueSuffix>.setAttribute("data-type", "ccTools.MessageBox");
 
 u<uniqueSuffix>.setAttribute("data-tag", "%s");
-s<uniqueSuffix>.setAttribute("data-tag", "%s");
 w<uniqueSuffix>.setAttribute("data-tag", "%s");
+s<uniqueSuffix>.setAttribute("data-tag", "%s");
 
 // Background layer
 u<uniqueSuffix>.setAttribute("class", "backgroundLayer");
@@ -49,7 +49,7 @@ w<uniqueSuffix>.style.zIndex     = zIndex+2;
 w<uniqueSuffix>.innerHTML        = `
     <div style="display: grid; grid-template-columns: %s auto %s; grid-template-rows: %s auto %s; height: 100%%; gap: 10px;">
         <img src="data:image/%s;base64,%s" style="width: 100%%; height: 100%%; grid-area: 1 / 1 / auto / auto;">
-        <div class="textarea" readonly="true" style="resize: none; background-color: %s; border-width: 0px; outline: none; font-family: %s; font-size: %s; color: %s; text-align: %s; grid-area: 1 / 2 / span 2 / span 2;">%s</div>
+        <div class="textarea" readonly="true" style="resize: none; background-color: %s; border-width: 0px; outline: none; overflow-y: auto; overflow-x: hidden; word-wrap: break-word; font-family: %s; font-size: %s; color: %s; text-align: %s; grid-area: 1 / 2 / span 2 / span 2;">%s</div>
         <button style="background-color: %s; border-radius: %s; border-width: %s; border-color: %s; font-family: %s; font-size: %s; color: %s; text-align: %s; grid-area: 3 / 3 / auto / auto;">OK</button>
     </div>
 `;

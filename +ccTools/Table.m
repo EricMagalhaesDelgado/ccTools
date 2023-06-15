@@ -630,8 +630,12 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.ColumnRawClass = columnRawClass;
             comp.ColumnClass    = columnClass;
 
-            if ~isequal(hTable, comp.Data)
+            if ~isequal(columnRawClass, columnClass) || ~isequal(hTable, comp.Data)
                 editFlag = true;
+                if isequal(hTable, comp.Data)
+                    hTable = addprop(hTable, {'Event'}, {'table'});
+                    hTable.Properties.CustomProperties.Event = 'DataTypeConversion';
+                end
             end
         end
     end
