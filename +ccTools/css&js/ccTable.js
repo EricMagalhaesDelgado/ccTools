@@ -125,17 +125,11 @@ function CellEditCallback(htmlComponent) {
     };
 }
 
-// SelectionChanged_mat2js & CellEdited_mat2js
+// SelectionChanged_mat2js
 function mat2jsCallbacks(event) {
     switch (event.Data.Event) {
         case "SelectionChanged_mat2js":
             updateData(event.Data.Value);
             break;
-        case "CellEdited_mat2js":
-            var idxRow = event.Data.Row;
-            var idxCol = event.Data.Column - 1;
-            table.rows[idxRow].cells[idxCol].innerHTML = event.Data.Value;
-            previousData[idxRow][idxCol] = event.Data.Value;
-            break
     };
 }

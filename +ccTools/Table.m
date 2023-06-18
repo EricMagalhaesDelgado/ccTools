@@ -1,7 +1,7 @@
 classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
     % Author.: Eric Magalhães Delgado
-    % Date...: June 03, 2023
+    % Date...: June 16, 2023
     % Version: 1.00
 
     %% PROPERTIES
@@ -23,41 +23,40 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         HTML            matlab.ui.control.HTML
     end
 
+
     properties (AbortSet)
         Data                    table
-        Selection               double  {ccTools.validators.mustBeTableProperty(Selection,        'Selection')}        = 0
-        Cell                    struct  {ccTools.validators.mustBeTableProperty(Cell,             'Cell')}             = struct('Row', {}, 'Column', {}, 'Value', {})
+        Selection               double {ccTools.validators.mustBeTableProperty(Selection,       'Selection')}       = 0
     end
 
 
     properties (AbortSet, UsedInUpdate = false)
-        ColumnName        (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnName,       'ColumnName')}       = {'auto'}
-        ColumnEditable    (1,:) double  {ccTools.validators.mustBeTableProperty(ColumnEditable,   'ColumnEditable')}   = 0
-        ColumnWidth       (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnWidth,      'ColumnWidth')}      = {'auto'}
-        ColumnAlign       (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnAlign,      'ColumnAlign')}      = {'auto'}
-        ColumnPrecision   (1,:) cell    {ccTools.validators.mustBeTableProperty(ColumnPrecision,  'ColumnPrecision')}  = {'auto'}
+        ColumnName        (1,:) cell   {ccTools.validators.mustBeTableProperty(ColumnName,      'ColumnName')}      = {'auto'}
+        ColumnEditable    (1,:) double {ccTools.validators.mustBeTableProperty(ColumnEditable,  'ColumnEditable')}  = 0
+        ColumnWidth       (1,:) cell   {ccTools.validators.mustBeTableProperty(ColumnWidth,     'ColumnWidth')}     = {'auto'}
+        ColumnAlign       (1,:) cell   {ccTools.validators.mustBeTableProperty(ColumnAlign,     'ColumnAlign')}     = {'auto'}
+        ColumnPrecision   (1,:) cell   {ccTools.validators.mustBeTableProperty(ColumnPrecision, 'ColumnPrecision')} = {'auto'}
 
-        FilterToolbar     (1,1) logical                                                                                = true
-        FilteredIndex     (:,1) double                                                                                 = []
+        FilterToolbar     (1,1) logical                                                                             = true
+        FilteredIndex     (:,1) double                                                                              = []
 
         % Header
-        hFontFamily       (1,1) ccTools.enum.FontFamily                                                                = ccTools.enum.FontFamily.Helvetica
-        hFontSize         (1,1) double {ccTools.validators.mustBeUnsignedNumber(hFontSize, 'nonZero')}                 = 12
-        hFontWeight       (1,1) ccTools.enum.FontWeight                                                                = ccTools.enum.FontWeight.bold
-        hFontAlign        (1,1) ccTools.enum.HorizontalAlign                                                           = ccTools.enum.HorizontalAlign.left
-        hFontColor        (1,:) char   {ccTools.validators.mustBeColor}                                                = 'white'
-        hBackgroundColor  (1,:) char   {ccTools.validators.mustBeColor}                                                = '#808080'
-        hCapitalLetter    (1,1) logical                                                                                = false
-        hClickable        (1,1) logical                                                                                = true
+        hFontFamily       (1,1) ccTools.enum.FontFamily                                                             = ccTools.enum.FontFamily.Helvetica
+        hFontSize         (1,1) double {ccTools.validators.mustBeUnsignedNumber(hFontSize, 'nonZero')}              = 12
+        hFontWeight       (1,1) ccTools.enum.FontWeight                                                             = ccTools.enum.FontWeight.bold
+        hFontAlign        (1,1) ccTools.enum.HorizontalAlign                                                        = ccTools.enum.HorizontalAlign.left
+        hFontColor        (1,:) char   {ccTools.validators.mustBeColor}                                             = 'white'
+        hCapitalLetter    (1,1) logical                                                                             = false
+        hClickable        (1,1) logical                                                                             = true
 
         % Body
-        bFontFamily       (1,1) ccTools.enum.FontFamily                                                                = ccTools.enum.FontFamily.Helvetica
-        bFontSize         (1,1) double {ccTools.validators.mustBeUnsignedNumber(bFontSize, 'nonZero')}                 = 10
-        bFontWeight       (1,1) ccTools.enum.FontWeight                                                                = ccTools.enum.FontWeight.normal
-        bFontColor        (1,:) char   {ccTools.validators.mustBeColor}                                                = 'black'
-        bStripingColor    (1,:) char   {ccTools.validators.mustBeColor}                                                = '#f0f0f0'
-        bHoverColor       (1,:) char   {ccTools.validators.mustBeColor}                                                = '#bfe5ff'
-        bSelectedColor    (1,:) char   {ccTools.validators.mustBeColor}                                                = '#bfe5ff'
+        bFontFamily       (1,1) ccTools.enum.FontFamily                                                             = ccTools.enum.FontFamily.Helvetica
+        bFontSize         (1,1) double {ccTools.validators.mustBeUnsignedNumber(bFontSize, 'nonZero')}              = 10
+        bFontWeight       (1,1) ccTools.enum.FontWeight                                                             = ccTools.enum.FontWeight.normal
+        bFontColor        (1,:) char   {ccTools.validators.mustBeColor}                                             = 'black'
+        bStripingColor    (1,:) char   {ccTools.validators.mustBeColor}                                             = '#f0f0f0'
+        bHoverColor       (1,:) char   {ccTools.validators.mustBeColor}                                             = '#bfe5ff'
+        bSelectedColor    (1,:) char   {ccTools.validators.mustBeColor}                                             = '#bfe5ff'
     end
 
 
@@ -66,15 +65,17 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         pathToTempFolder
         OnCleanup
 
-        Startup           (1,1) logical = true
-        EventName         (1,:) char    = ''
-        pTable_MaxRows    (1,1) double  = 1000
-        pTable_Page       (1,1) double  = 1
-        TableSize         (1,1) double  = 0
+        Startup           (1,1) logical                                                                             = true
+        EventName         (1,:) char                                                                                = ''
+        pTable_MaxRows    (1,1) double                                                                              = 1000
+        pTable_Page       (1,1) double                                                                              = 1
+        TableSize         (1,1) double                                                                              = 0
 
         ColumnRawName
         ColumnRawClass
         ColumnClass
+
+        Cell                    struct {ccTools.validators.mustBeTableProperty(Cell,            'Cell')}            = struct('Row', {}, 'Column', {}, 'Value', {})
     end
 
 
@@ -97,7 +98,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.OnCleanup = onCleanup(@()ccTools.fcn.deleteTempFolder(tempFolder));
 
             comp.Position = [1 1 520 320];
-            comp.BackgroundColor = [1 1 1];
+            comp.BackgroundColor = [0.5 0.5 0.5];
 
             comp.Grid = uigridlayout(comp);
             comp.Grid.ColumnWidth = {'1x', '1x', 17, 17, 17, 17, 17};
@@ -241,9 +242,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         end
 
                         if Flag
-                            comp.Startup     = true;
-                            comp.pTable_Page = 1;
-                            comp.TableSize   = height(comp.Data);
+                            comp.Startup = true;
                         end
     
                         tableCreation(comp, 'update')
@@ -268,31 +267,15 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                     end
 
                 case 'CellEdited'
-                    idx1  = comp.Cell.Row;
-                    idx2  = comp.Cell.Column;
-                    value = comp.Cell.Value;
-
                     if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'CellEdited_js2mat')
+                        idx1  = comp.Cell.Row;
+                        idx2  = comp.Cell.Column;
+                        value = comp.Cell.Value;
+
                         if ~isnumeric(value)
                             value = string(value);
                         end
                         comp.Data{idx1,idx2} = value;                                           % update() trigger
-                    else
-                        cellClass = class(comp.Data{idx1,idx2});
-
-                        if ~comp.ColumnEditable(idx2)
-                            error('ERROR - CellEdited event: Non-editable cell')
-                        elseif (idx1 && ~ismember(idx1, comp.FilteredIndex)) || (idx2 < 1) || (idx2 > width(comp.Data))
-                            error('ERROR - CellEdited event: Out of range')
-                        elseif (ismember(cellClass, {'char', 'string'}) && isnumeric(value)) || (isnumeric(comp.Data{idx1,idx2}) && ~isnumeric(value)) || (isnumeric(value) && isnan(value))
-                            error('ERROR - CellEdited event: Unexpected data type')
-                        end
-
-                        idx1 = find(comp.FilteredIndex == idx1, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
-                        if ~isempty(idx1) && (idx1 > 0) && (idx1 <= comp.pTable_MaxRows)
-                            comp.HTML.Data = struct('Event', 'CellEdited_mat2js', 'Row', idx1, 'Column', idx2, 'Value', value);
-                            return
-                        end
                     end
 
                 otherwise
@@ -402,11 +385,19 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 if comp.Startup
                     comp.Startup = false;
 
+                    comp.Selection        = 0;
+                    comp.PromptEntry.Data = '';
+                    comp.Filters.Text     = '';                    
+                    comp.pTable_Page      = 1;
+                    comp.TableSize        = height(comp.Data);
+
                     startup_PropertiesCheck(comp);
                     [editFlag, hTable] = startup_DataTypeCheck(comp);
+                    comp.FilteredIndex = (1:height(hTable))';
+
                     if editFlag
                         comp.Data = hTable;                                 % update() trigger
-                        pause(.001)                                         % Don't ask me why! Just give MATLAB some time to organize table rendering event... it works with any value (.000001 seconds, for example).
+                        pause(.001)                                         % Just give MATLAB some time to organize table rendering event... it works with any value (.000001 seconds, for example).
                     else
                         htmlConstructor(comp, hTable);
                     end
@@ -437,7 +428,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                             comp.ColumnPrecision(fPrecision.Column(ii)) = lower(extractBetween(fPrecision.Value{ii}, '"', '"'));
                         end
                     end
-        
+
                     comp.FilteredIndex = fIndex;
                     comp.Filters.Text  = fSentence;
         
@@ -537,8 +528,8 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 for ii = 1:COLUMNS
                     if ismember(class(hTable{:,ii}), ["cell", "string", "datetime", "categorical"])
                         Align{ii}      = 'left';
-                        Precision{ii}  = '%s';                    
-                    elseif isinteger(hTable{:,ii})
+                        Precision{ii}  = '%s';
+                    elseif islogical(hTable{:,ii}) || isinteger(hTable{:,ii})
                         Align{ii}      = 'right';
                         Precision{ii}  = '%.0f';    
                     elseif isfloat(hTable{:,ii})
@@ -555,7 +546,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                         Align{ii}      = 'right';
                         Precision{ii}  = sprintf('%%.%.0ff', dec);    
                     else
-                        error('ccTools.Table accepts only text ("cell", "string" and "categorical"), datetime and numeric ("double", "single", "uint8", "int8" and so on) as data classes.')
+                        error('ccTools.Table accepts only text ("cell", "string" and "categorical"), datetime, logical and numeric ("double", "single", "uint8", "int8" and so on) as data classes.')
                     end
                 end
 
@@ -582,20 +573,23 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             for ii = 1:COLUMNS
                 columnRawClass{ii} = class(hTable{:,ii});
 
-                if isnumeric(hTable{:,ii})
-                    columnClass{ii} = columnRawClass{ii};
-                    continue
-                else
-                    columnClass{ii} = 'string';
+                if     isnumeric(hTable{:,ii}); columnClass{ii} = columnRawClass{ii}; continue
+                elseif islogical(hTable{:,ii}); columnClass{ii} = 'double';
+                else;                           columnClass{ii} = 'string';
                 end
                 
                 switch columnRawClass{ii}
-                    case 'string'
+                    case 'logical'
+                        hTable = convertvars(hTable, ii, 'double');         % logical >> double
+                        continue
+
                     case 'categorical'                                      % categorical >> string
                         hTable = convertvars(hTable, ii, 'string');
+
                     case 'datetime'                                         % datetime >> string
                         hTable{:,ii}.Format = 'dd/MM/yyyy HH:mm:ss';
                         hTable = convertvars(hTable, ii, 'string');
+
                     case 'cell'                                             % cell >> string
                         subColumnClass = unique(cellfun(@(x) class(x), hTable{:,ii}, 'UniformOutput', false));
 
@@ -756,11 +750,14 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
                 end
             end
 
+            BackGroundColor     = uint8(255*comp.BackgroundColor);
+            htmlBackGroundColor = sprintf('rgb(%d, %d, %d)', BackGroundColor(1), BackGroundColor(2), BackGroundColor(3));
+
             htmlTemplate = ['<head>\n<style type="text/css">\n'                           ...
                             fileread(fullfile(comp.pathToMFILE, 'css&js', 'ccTable.css')) ...
                             '\n</style>\n<meta name="column-type" content="%s">\n</head>'];
 
-            htmlHeader   = sprintf(htmlTemplate, comp.hFontFamily, comp.hFontSize, comp.hFontWeight, comp.hFontAlign, comp.hFontColor, comp.hBackgroundColor,                     ...
+            htmlHeader   = sprintf(htmlTemplate, comp.hFontFamily, comp.hFontSize, comp.hFontWeight, comp.hFontAlign, comp.hFontColor, htmlBackGroundColor,                       ...
                                                  comp.bFontFamily, comp.bFontSize, comp.bFontWeight, comp.bFontColor, comp.bStripingColor, comp.bHoverColor, comp.bSelectedColor, ...
                                                  strjoin(ColumnType, ','));
         end

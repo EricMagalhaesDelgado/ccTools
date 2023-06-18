@@ -1,16 +1,10 @@
 <?xml version='1.0' encoding="utf-8"?>
 <toc version="2.0">
-    <tocitem target="doc_ccTools.html">ccTools Toolbox
-        <tocitem target="doc_ccTools_Button.html">Button</tocitem>
-        <tocitem target="doc_ccTools_Table.html">Table</tocitem>
-        <tocitem target="doc_ccTools_uiAlert.html">uialert</tocitem>
-        <tocitem target="doc_ccTools_uiProgressDialog.html">uiprogressdlg</tocitem>
-        <tocitem target="doc_ccTools_uiConfirm.html">uiconfirm</tocitem>
-        <tocitem target="doc_ccTools_uistyle.html">uistyle</tocitem>
-        <tocitem target="doc_ccAuxiliarFunctions.html">Auxiliar functions
-            <tocitem target="emptyTable - Copy.html">Examples</tocitem>
-            <tocitem target="emptyTable.html">Examples</tocitem>
-        </tocitem>
-        <tocitem target="doc_ccExamples.html">Examples</tocitem>
+    <tocitem target="ccTools.html">ccTools
+        <tocitem target="Table.html">Table</tocitem>
+        <tocitem target="Button.html">Button</tocitem>
+        <tocitem target="MessageBox.html">MessageBox</tocitem>
+        <tocitem target="ProgressDialog.html">ProgressDialog</tocitem>
+        <tocitem target="compCustomization.html">compCustomization</tocitem>
     </tocitem>
 </toc>
