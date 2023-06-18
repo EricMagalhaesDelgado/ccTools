@@ -83,7 +83,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                         jsCommand = sprintf(['%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n' ...
                                                'document.querySelector(''div[data-tag="%s"]'').children[0].style.backgroundColor = "transparent"\n'], jsCommand, compTag, compTag);
                         for jj = 1:numel(comp.Children)
-                            ChildrenTag = ccTools.fcn.componentDataTag(comp.Children(jj));
+                            [~, ChildrenTag] = ccTools.fcn.componentInfo(comp.Children(jj));
                             jsCommand   = sprintf('%sdocument.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n', jsCommand, ChildrenTag, propStruct(ii).value);
                         end
 
@@ -111,7 +111,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     %---------------------------------------------------------------------%
         case 'matlab.ui.container.Tab'
             propStruct = InputParser({'backgroundColor'}, varargin{:});
-            ParentTag  = ccTools.fcn.componentDataTag(comp.Parent);
+            [~, ParentTag] = ccTools.fcn.componentInfo(comp.Parent);
             jsCommand  = sprintf(['document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "transparent";\n', ...
                                   'document.querySelector(''div[data-tag="%s"]'').style.backgroundColor = "%s";\n'], ParentTag, compTag, propStruct.value);
 
