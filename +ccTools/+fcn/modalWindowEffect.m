@@ -39,6 +39,5 @@ function modalWindowEffect(fig, opacityType)
                     delete(h)
                 end
         end
-        drawnow
     end
 end
