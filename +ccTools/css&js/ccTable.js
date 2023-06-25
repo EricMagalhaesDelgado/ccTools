@@ -127,9 +127,11 @@ function CellEditCallback(htmlComponent) {
 
 // SelectionChanged_mat2js
 function mat2jsCallbacks(event) {
-    switch (event.Data.Event) {
-        case "SelectionChanged_mat2js":
-            updateData(event.Data.Value);
-            break;
+    if (event.Data != "") {
+        switch (event.Data.Event) {
+            case "SelectionChanged_mat2js":
+                updateData(event.Data.Value);
+                break;
+        };
     };
 }

@@ -1,8 +1,8 @@
 classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
     % Author.: Eric Magalhães Delgado
-    % Date...: June 16, 2023
-    % Version: 1.00
+    % Date...: June 24, 2023
+    % Version: 1.01
 
     %% PROPERTIES
     properties (Access = private, Transient, NonCopyable, UsedInUpdate = false, AbortSet)
@@ -62,11 +62,12 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
 
     properties (Access = protected, UsedInUpdate = false)
         pathToMFILE
-        pathToTempFolder
+        pathToTempFolder        
         OnCleanup
 
         Startup           (1,1) logical                                                                             = true
         EventName         (1,:) char                                                                                = ''
+        EventQueue        (1,:) cell
         pTable_MaxRows    (1,1) double                                                                              = 1000
         pTable_Page       (1,1) double                                                                              = 1
         TableSize         (1,1) double                                                                              = 0
@@ -75,7 +76,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         ColumnRawClass
         ColumnClass
 
-        Cell                    struct {ccTools.validators.mustBeTableProperty(Cell,            'Cell')}            = struct('Row', {}, 'Column', {}, 'Value', {})
+        Cell                    struct {ccTools.validators.mustBeTableProperty(Cell,            'Cell')}            = struct('Row', {}, 'Column', {}, 'PreviousValue', {}, 'Value', {})
     end
 
 
@@ -108,9 +109,7 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             comp.Grid.Padding = [2 2 2 2];
             comp.Grid.BackgroundColor = [1 1 1];
 
-            comp.HTML = uihtml(comp.Grid);
-            comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
-            comp.HTML.DataChangedFcn = matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true);
+            comp.HTML = uihtml(comp.Grid, Data='', DataChangedFcn=matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true), HTMLSource=fullfile(comp.pathToMFILE, 'html', 'emptyTable.html'));
             comp.HTML.Layout.Row = 1;
             comp.HTML.Layout.Column = [1 7];
 
@@ -220,92 +219,66 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
         
         % UPDATE (public property trigger)
         function update(comp)
-            switch comp.EventName
-                case 'DataChanged'
-                    if isempty(comp.Data)
-                        tableCreation(comp, 'startup')
-
-                    else
-                        % Check if this is a different table...
-                        Flag = false;
-                        if ~isequal(comp.ColumnRawName, comp.Data.Properties.VariableNames)
-                            Flag = true;
-                        else
-                            columnClass = {};
-                            for ii = 1:width(comp.Data)
-                                columnClass{ii} = class(comp.Data{:,ii});
-                            end
-
-                            if ~isequal(comp.ColumnClass, columnClass) && ~isequal(comp.ColumnRawClass, columnClass)
-                                Flag = true;
-                            end
-                        end
-
-                        if Flag
-                            comp.Startup = true;
-                        end
-    
-                        tableCreation(comp, 'update')
+            if isempty(comp.HTML.Data) || ~ismember(comp.HTML.Data.Event, {'SelectionChanged_js2mat', 'CellEdited_js2mat'})
+                if ismember('DataChanged', comp.EventQueue)
+                    columnClass = {};
+                    for ii = 1:width(comp.Data)
+                        columnClass{ii} = class(comp.Data{:,ii});
                     end
-
-                case 'SelectionChanged'
+    
+                    if ~isequal(comp.ColumnClass, columnClass)
+                        comp.Startup = true;
+                    end
+                    tableCreation(comp)
+    
+                elseif ismember('SelectionChanged', comp.EventQueue) 
                     if comp.Selection && ~ismember(comp.Selection, comp.FilteredIndex)
                         comp.Selection = 0;
-                        error('ERROR - SelectionChanged event: Out of range')
-                    end
-
-                    if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'SelectionChanged_js2mat')
-                        % something?
                     else
                         idx1 = find(comp.FilteredIndex == comp.Selection, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
-                        if ~isempty(idx1) && (idx1 > 0) && (idx1 <= comp.pTable_MaxRows)
+                        if isempty(idx1)
+                            idx1 = 0;
+                        end
+
+                        if (idx1 >= 0) && (idx1 <= comp.pTable_MaxRows)
                             comp.HTML.Data = struct('Event', 'SelectionChanged_mat2js', 'Value', idx1);
-                        else
-                            comp.HTML.Data = struct('Event', 'SelectionChanged_mat2js', 'Value', 0);
                         end
-                        return
                     end
-
-                case 'CellEdited'
-                    if ~isempty(comp.HTML.Data) && strcmp(comp.HTML.Data.Event, 'CellEdited_js2mat')
-                        idx1  = comp.Cell.Row;
-                        idx2  = comp.Cell.Column;
-                        value = comp.Cell.Value;
-
-                        if ~isnumeric(value)
-                            value = string(value);
-                        end
-                        comp.Data{idx1,idx2} = value;                                           % update() trigger
-                    end
-
-                otherwise
-                    if isempty(comp.Data)
-                        tableCreation(comp, 'startup')
-                    end
+                end
             end
+    
+            comp.EventName  = '';
+            comp.EventQueue = {};
 
-            comp.EventName   = '';
-            if ~isempty(comp.HTML.Data)
-                comp.HTML.Data = [];
+            if ~isempty(comp.HTML.Data) && ismember(comp.HTML.Data.Event, {'SelectionChanged_js2mat', 'CellEdited_js2mat'})
+                comp.HTML.Data = '';
             end
         end
         
 
         % JS >> MATLAB EVENTS
         function HTMLDataChanged(comp, event)
-            switch event.Source.Data.Event
+            switch comp.HTML.Data.Event
                 case 'SelectionChanged_js2mat'
-                    newSelection = event.Source.Data.Value;
+                    newSelection = comp.HTML.Data.Value;
                     if newSelection
                         newSelection = comp.FilteredIndex(newSelection+(comp.pTable_Page-1)*comp.pTable_MaxRows);
                     end
 
-                    comp.Selection = newSelection;
+                    comp.EventName = 'SelectionChanged_js2mat';
+                    comp.Selection = newSelection;                          % update() trigger
+
                     notify(comp, 'SelectionChanged')
 
                 case 'CellEdited_js2mat'
-                    newCell = rmfield(event.Source.Data.Value, 'PreviousValue');
+                    newCell = comp.HTML.Data.Value;
                     newCell.Row = comp.FilteredIndex(newCell.Row+(comp.pTable_Page-1)*comp.pTable_MaxRows);
+                    if ~isnumeric(newCell.Value)
+                        newCell.Value = string(newCell.Value);
+                    end
+
+                    comp.EventName = 'CellEdited_js2mat';
+                    comp.Data{newCell.Row, newCell.Column} = newCell.Value;  % update() trigger
 
                     comp.Cell = newCell;
                     notify(comp, 'CellEdited')
@@ -359,107 +332,93 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             end
 
             if Flag
-                tableCreation(comp, 'toolClicked')
+                tableCreation(comp)
             end            
         end
 
 
         % COMPONENT STARTUP, DATA FILTERING AND SO ON...
-        function tableCreation(comp, srcFcn)
-            % Empty table startup
-            if strcmp(srcFcn, 'startup')
-                eTable = startup_EmptyTable(comp);
-                if isempty(eTable.Properties.VariableNames)
+        function tableCreation(comp)
+            % Filled table startup
+            if comp.Startup
+                comp.Startup = false;
+
+                comp.PromptEntry.Data = '';
+                comp.Filters.Text     = '';                    
+                comp.pTable_Page      = 1;
+                comp.TableSize        = height(comp.Data);
+
+                if isempty(comp.Data.Properties.VariableNames)
                     comp.HTML.HTMLSource = fullfile(comp.pathToMFILE, 'html', 'emptyTable.html');
                     comp.Grid.RowHeight(2:4) = {0, 17, 0};
                     htmlPaginationTable(comp, table);
                 else
-                    comp.EventName = 'emptyTable';
-                    htmlConstructor(comp, eTable);
-                    comp.EventName = '';
-                end
-                return
-
-            else
-                % Filled table startup
-                if comp.Startup
-                    comp.Startup = false;
-
-                    comp.Selection        = 0;
-                    comp.PromptEntry.Data = '';
-                    comp.Filters.Text     = '';                    
-                    comp.pTable_Page      = 1;
-                    comp.TableSize        = height(comp.Data);
-
                     startup_PropertiesCheck(comp);
                     [editFlag, hTable] = startup_DataTypeCheck(comp);
                     comp.FilteredIndex = (1:height(hTable))';
-
+    
                     if editFlag
                         comp.Data = hTable;                                 % update() trigger
-                        pause(.001)                                         % Just give MATLAB some time to organize table rendering event... it works with any value (.000001 seconds, for example).
+                        pause(.001)
                     else
                         htmlConstructor(comp, hTable);
                     end
+                end
 
+            else
+                % FilterToolbar visibility
+                if ~comp.FilterToolbar
+                    if height(comp.Data) <= comp.pTable_MaxRows
+                        comp.Grid.RowHeight(2:4) = {0,0,0};
+                    else
+                        comp.Grid.RowHeight(3) = {17};
+                    end
+                end
+    
+                % Filtering
+                initialFilteredIndex = comp.FilteredIndex;
+    
+                if isempty(comp.PromptEntry.Data)
+                    fTable    = comp.Data;
+                    fIndex    = (1:height(comp.Data))';
+                    fSentence = '';
+                    fValid    = true;
                 else
-                    % FilterToolbar visibility
-                    if ~comp.FilterToolbar
-                        if height(comp.Data) <= comp.pTable_MaxRows
-                            comp.Grid.RowHeight(2:4) = {0,0,0};
-                        else
-                            comp.Grid.RowHeight(3) = {17};
-                        end
-                    end
-        
-                    % Filtering
-                    initialFilteredIndex = comp.FilteredIndex;
-        
-                    if isempty(comp.PromptEntry.Data)
-                        fTable    = comp.Data;
-                        fIndex    = (1:height(comp.Data))';
-                        fSentence = '';
-                        fValid    = true;
-                    else
-                        [fTable, fIndex, fTableParser, fSentence, fValid] = ccTools.fcn.TableFilter(comp.Data, comp.PromptEntry.Data);
+                    [fTable, fIndex, fTableParser, fSentence, fValid] = ccTools.fcn.TableFilter(comp.Data, comp.PromptEntry.Data);
 
-                        fPrecision = fTableParser(strcmp(fTableParser.Operation, 'PRECISION'),:);
-                        for ii = 1:height(fPrecision)
-                            comp.ColumnPrecision(fPrecision.Column(ii)) = lower(extractBetween(fPrecision.Value{ii}, '"', '"'));
-                        end
+                    fPrecision = fTableParser(strcmp(fTableParser.Operation, 'PRECISION'),:);
+                    for ii = 1:height(fPrecision)
+                        comp.ColumnPrecision(fPrecision.Column(ii)) = lower(extractBetween(fPrecision.Value{ii}, '"', '"'));
                     end
+                end
 
-                    comp.FilteredIndex = fIndex;
-                    comp.Filters.Text  = fSentence;
-        
-                    if ~isempty(comp.Filters.Text); comp.Grid.RowHeight{2} = 17;
-                    else;                           comp.Grid.RowHeight{2} = 0;
-                    end
-        
-                    if fValid; comp.PromptGrid.ColumnWidth{1} = 0;
-                    else;      comp.PromptGrid.ColumnWidth{1} = 17;
-                    end
-                    
-                    % HTML
-                    htmlConstructor(comp, fTable);
-        
-                    % Selection/Cell properties re-start
-                    if height(fTable) && comp.Selection && ismember(comp.Selection, comp.FilteredIndex)
-                        comp.EventName = 'SelectionChanged';
-                        update(comp)
-                    else
-                        comp.Selection = 0;
-                    end
-        
-                    if ~isempty(comp.Cell)
-                        comp.Cell(1) = [];
-                    end
-        
-                    % Event
-                    if ~isequal(initialFilteredIndex, comp.FilteredIndex) || (height(comp.Data) ~= comp.TableSize)
-                        comp.TableSize = height(comp.Data);
-                        notify(comp, 'DataFiltered')
-                    end
+                comp.FilteredIndex = fIndex;
+                comp.Filters.Text  = fSentence;
+    
+                if ~isempty(comp.Filters.Text); comp.Grid.RowHeight{2} = 17;
+                else;                           comp.Grid.RowHeight{2} = 0;
+                end
+    
+                if fValid; comp.PromptGrid.ColumnWidth{1} = 0;
+                else;      comp.PromptGrid.ColumnWidth{1} = 17;
+                end
+    
+                % Selection property reset
+                if ~ismember(comp.Selection, comp.FilteredIndex)
+                    comp.Selection = 0;
+                end
+    
+                if ~isempty(comp.Cell)
+                    comp.Cell(1) = [];
+                end
+
+                % HTML
+                htmlConstructor(comp, fTable);
+    
+                % Event
+                if ~isequal(initialFilteredIndex, comp.FilteredIndex) || (height(comp.Data) ~= comp.TableSize)
+                    comp.TableSize = height(comp.Data);
+                    notify(comp, 'DataFiltered')
                 end
             end
         end
@@ -680,8 +639,15 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
             fwrite(fileID, sprintf('\n\t\t</tr>\n\t</thead>\n\n\t<tbody>'), 'char');
             
             % BODY
+            selectedRow = find(comp.FilteredIndex == comp.Selection, 1) - (comp.pTable_Page-1)*comp.pTable_MaxRows;
             for ii = 1:ROWS
-                fwrite(fileID, sprintf('\n\t\t<tr contenteditable="false">'), 'char');            
+                % SelectedRow
+                if (ii == selectedRow); selectedRowTag = ' class="selected"';
+                else;                   selectedRowTag = '';
+                end
+
+                fwrite(fileID, sprintf('\n\t\t<tr contenteditable="false"%s>', selectedRowTag), 'char');
+
                 for jj = 1:COLUMNS
                     value = pTable{ii, jj};          
                     fwrite(fileID, sprintf(rowTemplate{jj}, value), 'char');
@@ -781,22 +747,28 @@ classdef Table < matlab.ui.componentcontainer.ComponentContainer
     %% SET/GET OF MAIN PUBLIC PROPERTIES (DATA, SELECTION AND ROW)
     methods
         function set.Data(comp, value)
-            comp.Data = value;
             set(comp, 'EventName', 'DataChanged')
+            comp.Data = value;
         end
 
         function set.Selection(comp, value)
-            comp.Selection = value;
             set(comp, 'EventName', 'SelectionChanged')
-        end
-
-        function set.Cell(comp, value)
-            comp.Cell = value;
-            set(comp, 'EventName', 'CellEdited')
+            comp.Selection = value;
         end
 
         function set.EventName(comp, value)
             comp.EventName = value;
+            if ismember(value, {'DataChanged', 'SelectionChanged'})
+                set(comp, 'EventQueue', {value})
+            end
+        end
+
+        function set.EventQueue(comp, value)
+            if isempty(char(value))
+                comp.EventQueue = {};
+            elseif ~ismember(value, comp.EventQueue)
+                comp.EventQueue(end+1) = value;
+            end
         end
     end
 end
