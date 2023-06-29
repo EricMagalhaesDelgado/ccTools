@@ -28,6 +28,9 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     
     % main variables
     [webWin, compTag] = ccTools.fcn.componentInfo(comp);
+    if isempty(webWin)
+        return
+    end
 
     % customizations...
     switch class(comp)

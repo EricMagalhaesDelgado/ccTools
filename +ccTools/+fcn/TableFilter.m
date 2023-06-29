@@ -77,7 +77,7 @@ function [fTableParser, fSentence, fValid] = Fcn1_InputParser(hTable, fRawSenten
             else
                 temp = sRawSentence(ii);
             end
-            regE = 'C(?<Column>\d+)\s*(?<Operation>(CONTAINS|!CONTAINS|ISEQUAL|!ISEQUAL|<|<=|==|!=|>=|>))\s*(?<Value>(".+"|[-]?\d*[.]?\d*))';
+            regE = 'C(?<Column>\d+)\s*(?<Operation>(CONTAINS|!CONTAINS|ISEQUAL|!ISEQUAL|<=|==|!=|>=|<|>))\s*(?<Value>(".+"|[-]?\d*[.]?\d*))';
         end
     
         for jj = 1:numel(temp)

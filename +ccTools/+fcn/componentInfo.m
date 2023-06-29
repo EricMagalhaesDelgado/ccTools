@@ -4,9 +4,10 @@ function [webWin, compTag] = componentInfo(comp)
     warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
 
     fHandle = ancestor(comp, 'figure');
+    webWin  = [];
 
     tic; t = toc;
-    while t < 5
+    while t < 10
         try
             webWin = struct(struct(struct(fHandle).Controller).PlatformHost).CEF;
             break
