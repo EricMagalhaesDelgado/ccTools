@@ -25,9 +25,10 @@ function [winWidth,  winHeight] = winSize(comp, msg, p)
         if msgColumns > winColSize
             % New width of the window.
             winWidth = min([.5*winSize(1), 0.67*msgFontSize*msgColumns+iconWidth+30]);
-            if winWidth < 302
-                winWidth = 302;
-            end
+            
+            winWidth(winWidth < 302) = 302;
+            winWidth(winWidth > 480) = 480;
+
             % Updates the number of characters supported in a single line.
             winColSize  = floor((winWidth-iconWidth-30)  / (0.67*msgFontSize));
         end
@@ -37,9 +38,9 @@ function [winWidth,  winHeight] = winSize(comp, msg, p)
         if msgRows > winRowSize
             % New height of the window.
             winHeight = min([.8*winSize(2), 1.231*msgFontSize*msgRows+btnHeight+30]);
-            if winHeight < 162
-                winHeight = 162;
-            end
+
+            winHeight(winHeight < 162) = 162;
+            winHeight(winHeight > 480) = 480;
         end
     end
 
