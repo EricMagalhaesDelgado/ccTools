@@ -192,7 +192,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                 end
             end
 
-            % Font Properties (iterative process, going through all the columns)
+            % Font text align (iterative process, going through all the columns)
             idx1 = find(strcmp('textAlign', {propStruct.name}), 1);
             if ~isempty(idx1)
                 jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-table-header-row")[0].children;\n' ...
@@ -203,7 +203,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                 jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
             end
 
-            % Font Properties (iterative process, going through all the columns)
+            % Others font properties (iterative process, going through all the columns)
             idx2 = find(cellfun(@(x) ~isempty(x), cellfun(@(x) find(strcmp({'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, x), 1), {propStruct.name}, 'UniformOutput', false)));
             if ~isempty(idx2)
                 jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-default-header-cell");\n' ...
