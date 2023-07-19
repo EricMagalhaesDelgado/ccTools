@@ -171,7 +171,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
         case 'matlab.ui.control.Table'
             propStruct = InputParser({'backgroundColor', 'backgroundHeaderColor',   ...
                                       'borderRadius', 'borderWidth', 'borderColor', ...
-                                      'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, varargin{:});
+                                      'textAlign', 'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, varargin{:});
 
             jsCommand = '';
             for ii = 1:numel(propStruct)
@@ -193,12 +193,23 @@ function [status, errorMsg] = compCustomization(comp, varargin)
             end
 
             % Font Properties (iterative process, going through all the columns)
-            idx = find(cellfun(@(x) ~isempty(x), cellfun(@(x) find(strcmp({'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, x), 1), {propStruct.name}, 'UniformOutput', false)));
-            if ~isempty(idx)
+            idx1 = find(strcmp('textAlign', {propStruct.name}), 1);
+            if ~isempty(idx1)
+                jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-table-header-row")[0].children;\n' ...
+                                       'for (let ii = 0; ii < elements.length; ii++) {\n'], jsCommand, compTag);
+                for ll = idx1
+                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(ll).name, propStruct(ll).value);
+                end
+                jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
+            end
+
+            % Font Properties (iterative process, going through all the columns)
+            idx2 = find(cellfun(@(x) ~isempty(x), cellfun(@(x) find(strcmp({'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, x), 1), {propStruct.name}, 'UniformOutput', false)));
+            if ~isempty(idx2)
                 jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-default-header-cell");\n' ...
                                        'for (let ii = 0; ii < elements.length; ii++) {\n'], jsCommand, compTag);
-                for ll = idx
-                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(ll).name, propStruct(ll).value);
+                for mm = idx2
+                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(mm).name, propStruct(mm).value);
                 end
                 jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
             end
