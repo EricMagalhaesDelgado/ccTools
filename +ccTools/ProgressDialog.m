@@ -32,7 +32,7 @@ function d = ProgressDialog(comp, varargin)
     uniqueSuffix = datestr(now, '_THHMMSSFFF');
     
     switch class(comp)
-        case 'matlab.ui.Figure'
+        case {'matlab.ui.container.internal.AppContainer', 'matlab.ui.Figure'}
             jsSetParent = sprintf(['document.body.appendChild(u%s);\n' ...
                                    'document.body.appendChild(w%s);'], uniqueSuffix, uniqueSuffix);
         otherwise

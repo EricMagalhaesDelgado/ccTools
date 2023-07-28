@@ -1,7 +1,7 @@
 function MessageBox(comp, msg, varargin)
 
     arguments
-        comp matlab.ui.Figure
+        comp {ccTools.validators.mustBeAppContainer}
         msg  {ccTools.validators.mustBeScalarText}
     end
 

@@ -6,7 +6,7 @@ function [winWidth,  winHeight] = winSize(comp, msg, p)
     % The window size will be adjustable, depending on the text content, 
     % only if the parameters winWidth and winHeight are not configured.
     if isequal([winWidth, winHeight], [302, 162])
-        winSize     = comp.Position(3:4); % Figure
+        winSize     = ContainerSize(comp);
 
         iconWidth   = str2double(extractBefore(p.iconWidth,    'px'));
         btnHeight   = str2double(extractBefore(p.buttonHeight, 'px'));        
@@ -46,4 +46,13 @@ function [winWidth,  winHeight] = winSize(comp, msg, p)
 
     winWidth  = sprintf('%.0fpx', winWidth);
     winHeight = sprintf('%.0fpx', winHeight);
+end
+
+
+%-------------------------------------------------------------------------%
+function compSize = ContainerSize(comp)
+    switch class(comp)
+        case 'matlab.ui.container.internal.AppContainer'; compSize = comp.WindowBounds(3:4);
+        case 'matlab.ui.Figure';                          compSize = comp.Position(3:4);
+    end
 end
