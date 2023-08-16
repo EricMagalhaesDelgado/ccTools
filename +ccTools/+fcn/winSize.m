@@ -15,8 +15,11 @@ function [winWidth,  winHeight] = winSize(comp, msg, p)
         % Number of characters supported in a single line (winColSize) and 
         % number of lines (winRowSize), considering the initial window size
         % (302x106 pixels).
-        winColSize  = floor((winWidth-iconWidth-30)  / (0.67*msgFontSize));
-        winRowSize  = floor((winHeight-btnHeight-30) / (1.25*msgFontSize));
+        k1 = 0.67;
+        k2 = 1.25;
+
+        winColSize  = floor((winWidth-iconWidth-30)  / (k1*msgFontSize));
+        winRowSize  = floor((winHeight-btnHeight-30) / (k2*msgFontSize));
         
         % Splitting the text content into lines (msgSplit), identifying the 
         % number of characters in the line with the most characters (msgColumns).
@@ -30,14 +33,14 @@ function [winWidth,  winHeight] = winSize(comp, msg, p)
             winWidth(winWidth > 480) = 480;
 
             % Updates the number of characters supported in a single line.
-            winColSize  = floor((winWidth-iconWidth-30)  / (0.67*msgFontSize));
+            winColSize  = floor((winWidth-iconWidth-30)  / (k1*msgFontSize));
         end
         
         % Number of lines required to display the information on the screen.
-        msgRows = sum(round(cellfun(@(x) numel(x), msgSplit) / winColSize));
+        msgRows = numel(msgSplit) + sum(floor(cellfun(@(x) numel(x), msgSplit) / winColSize));
         if msgRows > winRowSize
             % New height of the window.
-            winHeight = min([.8*winSize(2), 1.231*msgFontSize*msgRows+btnHeight+30]);
+            winHeight = min([.8*winSize(2), k2*msgFontSize*msgRows+btnHeight+30]);
 
             winHeight(winHeight < 162) = 162;
             winHeight(winHeight > 480) = 480;
