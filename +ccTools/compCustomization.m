@@ -197,8 +197,8 @@ function [status, errorMsg] = compCustomization(comp, varargin)
             if ~isempty(idx1)
                 jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-table-header-row")[0].children;\n' ...
                                        'for (let ii = 0; ii < elements.length; ii++) {\n'], jsCommand, compTag);
-                for ll = idx1
-                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(ll).name, propStruct(ll).value);
+                for jj = idx1
+                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(jj).name, propStruct(jj).value);
                 end
                 jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
             end
@@ -206,7 +206,17 @@ function [status, errorMsg] = compCustomization(comp, varargin)
             % Others font properties (iterative process, going through all the columns)
             idx2 = find(cellfun(@(x) ~isempty(x), cellfun(@(x) find(strcmp({'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, x), 1), {propStruct.name}, 'UniformOutput', false)));
             if ~isempty(idx2)
+                % Row-like table header (Default)
                 jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').getElementsByClassName("mw-default-header-cell");\n' ...
+                                       'for (let ii = 0; ii < elements.length; ii++) {\n'], jsCommand, compTag);
+                for ll = idx2
+                    jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(ll).name, propStruct(ll).value);
+                end
+                jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
+
+
+                % Column-like table header
+                jsCommand = sprintf(['%svar elements = document.querySelector(''div[data-tag="%s"]'').querySelectorAll(".mw-table-row-header .mw-string-renderer");\n' ...
                                        'for (let ii = 0; ii < elements.length; ii++) {\n'], jsCommand, compTag);
                 for mm = idx2
                     jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(mm).name, propStruct(mm).value);
