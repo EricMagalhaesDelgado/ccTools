@@ -212,7 +212,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                 for ll = idx2
                     jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(ll).name, propStruct(ll).value);
                 end
-                jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
+                jsCommand = sprintf('%s}\nelements = undefined;\n\n', jsCommand);
 
 
                 % Column-like table header
@@ -221,7 +221,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
                 for mm = idx2
                     jsCommand = sprintf('%selements[ii].style.%s = "%s";\n', jsCommand, propStruct(mm).name, propStruct(mm).value);
                 end
-                jsCommand = sprintf('%s}\nelements = undefined;\n', jsCommand);
+                jsCommand = sprintf('%s}\nelements = undefined;', jsCommand);
             end
 
 
@@ -234,7 +234,7 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     % JS
     pause(.001)
     try
-        webWin.executeJS(jsCommand);     
+        webWin.executeJS(jsCommand);
     catch ME
         status   = false;
         errorMsg = getReport(ME);

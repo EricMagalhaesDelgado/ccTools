@@ -8,7 +8,7 @@ function rgbImg = hex2rgb(hexImg, OuputFormat, Decimals)
     arguments
         hexImg      {ccTools.validators.mustBeColor(hexImg, 'hex')}
         OuputFormat {mustBeMember(OuputFormat, {'uint8', 'float'})} = 'float'
-        Decimals    {ccTools.validators.mustBeNaturalNumericScalar} = 3
+        Decimals    {mustBeInteger, mustBeNonnegative} = 3
     end
 
     hexImg = char(hexImg);
