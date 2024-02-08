@@ -25,10 +25,10 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
         RowSpacing       (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 0
         RowTextSpacing   (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 0
 
-        BorderWidth      (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 1
-        BorderColor      (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
-        BorderRadius     (1,:) char   {ccTools.validators.mustBeCSSProperty(BorderRadius, 'border-radius')} = '5px' % '50%' (rounded button)
-        BorderPadding    (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
+        borderWidth      (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 1
+        borderColor      (1,:) char   {ccTools.validators.mustBeColor}                                      = '#808080'
+        borderRadius     (1,:) char   {ccTools.validators.mustBeCSSProperty(borderRadius, 'border-radius')} = '5px' % '50%' (rounded button)
+        borderPadding    (1,1) double {ccTools.validators.mustBeUnsignedNumber}                             = 5
             
         IconWidth        (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconWidth,  'nonZero')}      = 18 % pixels
         IconHeight       (1,1) double {ccTools.validators.mustBeUnsignedNumber(IconHeight, 'nonZero')}      = 18 % pixels
@@ -73,7 +73,7 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
             comp.Position = [1 1 180 70];
             comp.BackgroundColor = "#f5f5f5";                               % Matlab default value (uibutton)
 
-            comp.Grid = uigridlayout(comp, [1 1], Padding=[0 0 0 0]);            
+            comp.Grid = uigridlayout(comp, [1 1], Padding=[0 0 0 0]);
             comp.HTML = uihtml(comp.Grid, Data='', DataChangedFcn=matlab.apps.createCallbackFcn(comp, @HTMLDataChanged, true), HTMLSource=htmlTempFile(comp));
         end
 
@@ -207,10 +207,10 @@ classdef Button < matlab.ui.componentcontainer.ComponentContainer
             htmlHoverColor      = htmlRGBColor(comp, 'hover',  BackGroundColor);
             htmlActiveColor     = htmlRGBColor(comp, 'active', BackGroundColor);
 
-            htmlStyle = sprintf(fileread(fullfile(comp.pathToMFILE, 'css&js', 'ccButton.css')), comp.BorderPadding,            comp.BorderWidth,              ...
+            htmlStyle = sprintf(fileread(fullfile(comp.pathToMFILE, 'css&js', 'ccButton.css')), comp.borderPadding,            comp.borderWidth,              ...
                                                                                                 comp.RowSpacing,               comp.IconHeight,               ...
-                                                                                                htmlBackGroundColor,           comp.BorderColor,              ...
-                                                                                                comp.BorderRadius,             htmlHoverColor,                ...
+                                                                                                htmlBackGroundColor,           comp.borderColor,              ...
+                                                                                                comp.borderRadius,             htmlHoverColor,                ...
                                                                                                 comp.DisabledOpacity,          htmlActiveColor,               ...
                                                                                                 comp.RowTextSpacing,           htmlGrid.RowHeight,            ...
                                                                                                 htmlGrid.ColumnWidth,          comp.ColumnSpacing,            ...

@@ -12,8 +12,8 @@ function [status, errorMsg] = compCustomization(comp, varargin)
     errorMsg = '';
     
     % compatibility warning
-    if ~ismember(version('-release'), {'2021b', '2022a', '2022b', '2023a'})
-        warning('ccTools.compCustomization was tested only in three MATLAB releases (R2021b, R2022b and R2023a).')
+    if ~ismember(version('-release'), {'2021b', '2022a', '2022b', '2023a', '2023b'})
+        warning('ccTools.compCustomization was tested only in four MATLAB releases (R2021b, R2022b, R2023a and R2023b).')
     end
 
     % nargin validation
