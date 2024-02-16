@@ -1,27 +1,27 @@
 function setup(htmlComponent) {
-    console.log(htmlComponent); // Curiosidade 1!
-
-    htmlComponent.addEventListener("ccTools.compCustomization", function(event) {
-        console.log(event);  // Curiosidade 2! :)
-
-        let objClass    = event.Data.Class;
-        let objDataTag  = event.Data.DataTag;
-        let objProperty = event.Data.Property;
-        let objValue    = event.Data.Value;
+    // htmlComponent.sendEventToMATLAB("Startup", JSON.stringify({name:"NoError", message:"No error"}));    
+    
+    htmlComponent.addEventListener("compCustomization", function(event) {
+        let objClass    = event.Data.Class.toString();
+        let objDataTag  = event.Data.DataTag.toString();
+        let objProperty = event.Data.Property.toString();
+        let objValue    = event.Data.Value.toString();
         let objHandle   = window.parent.document.querySelector(`div[data-tag="${objDataTag}"]`);
-
+        
         if (!objHandle || !validation(objClass, objProperty)) {
             return;
         }
         
         try {
+            let elements = null;
+
             switch (objClass) {
                 case "matlab.ui.container.ButtonGroup":
                 case "matlab.ui.container.CheckBoxTree":
                 case "matlab.ui.container.Panel":
                 case "matlab.ui.container.Tree":
-                    docHandle.style[objProperty] = objValue;
-                    docHandle.children[0].style[objProperty] = objValue;
+                    objHandle.style[objProperty] = objValue;
+                    objHandle.children[0].style[objProperty] = objValue;
                     break;
                     
                 case "matlab.ui.container.GridLayout":
@@ -47,7 +47,7 @@ function setup(htmlComponent) {
                         case "fontWeight":
                         case "fontSize":
                         case "color":
-                            let elements = objHandle.getElementsByClassName("mwTabLabel");                            
+                            elements = objHandle.getElementsByClassName("mwTabLabel");                            
                             for (let ii = 0; ii < elements.length; ii++) {
                                 elements[ii].style[objProperty] = objValue;
                             }
@@ -101,9 +101,10 @@ function setup(htmlComponent) {
                             objHandle.children[0].children[0].style[objProperty] = objValue;
                             break;
                         case "textAlign":
-                            let elements = objHandle.querySelectorAll("mw-table-header-row")[0].children;                      
+                        case "paddingTop":
+                            elements = objHandle.getElementsByClassName("mw-table-header-row")[0].children;                      
                             for (let ii = 0; ii < elements.length; ii++) {
-                                elements[ii].style.textAlign = objValue;
+                                elements[ii].style[objProperty] = objValue;
                             }
                             break;
                         case "fontFamily":
@@ -111,21 +112,14 @@ function setup(htmlComponent) {
                         case "fontWeight":
                         case "fontSize":
                         case "color":
-                            // Row-like table header (Default)
-                            let rowElements = objHandle.querySelectorAll("mw-default-header-cell");                            
-                            for (let ii = 0; ii < rowElements.length; ii++) {
-                                rowElements[ii].style[objProperty] = objValue;
-                            }
-                            
-                            // Column-like table header
-                            let colElements = objHandle.querySelectorAll(".mw-table-row-header .mw-string-renderer");
-                            for (let ii = 0; ii < colElements.length; ii++) {
-                                colElements[ii].style[objProperty] = objValue;
+                            elements = objHandle.getElementsByClassName("mw-default-header-cell");
+                            for (let ii = 0; ii < elements.length; ii++) {
+                                elements[ii].style[objProperty] = objValue;
                             }
                     }
             }
         } catch (ME) {
-            console.error(ME);
+            // htmlComponent.sendEventToMATLAB("JSError", JSON.stringify(ME, ['name', 'message']));
         }
     });
 }
@@ -165,7 +159,7 @@ function validation(objClass, objProperty) {
             break;
 
         case "matlab.ui.control.Table":
-            propList = ["backgroundColor", "backgroundHeaderColor", "borderRadius", "borderWidth", "borderColor", "textAlign", "fontFamily", "fontStyle", "fontWeight", "fontSize", "color"];
+            propList = ["backgroundColor", "backgroundHeaderColor", "borderRadius", "borderWidth", "borderColor", "textAlign", "paddingTop", "fontFamily", "fontStyle", "fontWeight", "fontSize", "color"];
             break;
 
         default:
