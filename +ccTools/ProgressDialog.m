@@ -8,10 +8,7 @@ function d = ProgressDialog(comp, varargin)
         varargin
     end
     
-    % compatibility warning
-    if ~ismember(version('-release'), {'2021b', '2022a', '2022b', '2023a'})
-        warning('ccTools.ProgressDialog was tested only in three MATLAB releases (R2021b, R2022b and R2023a).')
-    end
+    % ccTools.fcn.compatibilityWarning('ProgressDialog')
 
     % nargin validation
     if mod(nargin-1, 2)

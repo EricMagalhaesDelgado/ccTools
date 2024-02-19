@@ -9,10 +9,7 @@ function MessageBox(comp, msg, varargin)
         varargin
     end
     
-    % compatibility warning
-    if ~ismember(version('-release'), {'2021b', '2022a', '2022b', '2023a'})
-        warning('ccTools.uiprogressdlg was tested only in three MATLAB releases (R2021b, R2022b and R2023a).')
-    end
+    % ccTools.fcn.compatibilityWarning('MessageBox')
 
     % nargin validation
     if mod(nargin-2, 2)
