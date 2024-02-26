@@ -1,5 +1,13 @@
 function setup(htmlComponent) {
-    // htmlComponent.sendEventToMATLAB("Startup", JSON.stringify({name:"NoError", message:"No error"}));    
+    // htmlComponent.sendEventToMATLAB("Startup", JSON.stringify({name:"NoError", message:"No error"}));
+
+    htmlComponent.addEventListener("delProgressDialog", function() {
+        try {
+            window.parent.parent.document.getElementsByClassName("mw-busyIndicator")[0].remove();
+        } catch (ME) {
+            // console.log(ME)
+        }
+    });
     
     htmlComponent.addEventListener("compCustomization", function(event) {
         let objClass    = event.Data.Class.toString();
