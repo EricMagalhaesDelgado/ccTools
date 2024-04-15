@@ -8,7 +8,30 @@ function setup(htmlComponent) {
             // console.log(ME)
         }
     });
-    
+
+    htmlComponent.addEventListener("addKeyDownListener", function(event) {
+        let objDataName  = event.Data.DataName.toString();
+        let objDataTag   = event.Data.DataTag.toString();
+        let objHandle    = window.parent.document.querySelector(`div[data-tag="${objDataTag}"]`).children[0];
+
+        objHandle.addEventListener('keydown', function(event) {
+            keyDownListener(event, htmlComponent, objDataName, objHandle);
+        });
+    });
+
+    htmlComponent.addEventListener("EditFieldFocus", function(event) {
+        let objDataName  = event.Data.DataName.toString();
+        let objDataTag   = event.Data.DataTag.toString();
+        let objHandle    = window.parent.document.querySelector(`div[data-tag="${objDataTag}"]`).querySelector('input');
+
+        try {
+            objHandle.focus();
+            objHandle.setSelectionRange(objHandle.value.length, objHandle.value.length);
+        } catch (ME) {
+            // console.log(ME)
+        }
+    });
+        
     htmlComponent.addEventListener("compCustomization", function(event) {
         let objClass    = event.Data.Class.toString();
         let objDataTag  = event.Data.DataTag.toString();
@@ -130,6 +153,26 @@ function setup(htmlComponent) {
             // htmlComponent.sendEventToMATLAB("JSError", JSON.stringify(ME, ['name', 'message']));
         }
     });
+}
+
+function keyDownListener(event, htmlComponent, objDataName, objHandle) {
+    keyEvents = ["ArrowUp", "ArrowDown", "Enter", "Escape"];
+
+    switch (objDataName) {
+        case "app.EditField":
+            break;
+        case "app.ListBox":
+            let selectedItem = objHandle.getElementsByClassName("mwListItem mwListItemSelected");
+
+            if (selectedItem.length == 1) {
+                selectedItem[0].dataset.mwIndex != "1"
+            }
+            break;
+    }
+
+    if (keyEvents.includes(event.key)) {
+        htmlComponent.sendEventToMATLAB(event.key, objDataName);
+    }
 }
 
 function validation(objClass, objProperty) {
