@@ -35,7 +35,16 @@ function mustBeCSSProperty(x, PropertyName)
                     error(errorMessage(PropertyName))
                 end
 
-            case {'border-width', 'font-size', 'width', 'height', 'size', 'paddingTop'}
+            case 'border-width'
+                if ischar(x) || (isstring(x) && isscalar(x))
+                    if isempty(regexpi(x, '^(\d+px\s+){3}\d+px$|^(\d+px)$', 'once'))
+                        error(errorMessage(PropertyName))
+                    end
+                else
+                    error(errorMessage(PropertyName))
+                end
+
+            case {'font-size', 'width', 'height', 'size', 'paddingTop'}
                 if ischar(x) || (isstring(x) && isscalar(x))
                     y = char(regexpi(x, '\d+px', 'match'));
                     if ~strcmpi(x, y)
