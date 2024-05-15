@@ -45,8 +45,8 @@ function compCustomizationV2(jsBackDoor, comp, varargin)
             propStruct = InputParser({'backgroundColor'}, varargin{:});
 
         case 'matlab.ui.container.TabGroup'
-            propStruct = InputParser({'backgroundColor', 'backgroundHeaderColor',   ...
-                                      'borderRadius', 'borderWidth', 'borderColor', ...
+            propStruct = InputParser({'backgroundColor', 'backgroundHeaderColor', 'transparentHeader', ...
+                                      'borderRadius', 'borderWidth', 'borderColor',                    ...
                                       'fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'color'}, varargin{:});
 
         case 'matlab.ui.container.Tab'
@@ -102,6 +102,7 @@ function propStruct = InputParser(propList, varargin)
             % BackgroundColor
             case 'backgroundColor';       addParameter(p, 'backgroundColor',       d, @(x) ccTools.validators.mustBeColor(x, 'all'))
             case 'backgroundHeaderColor'; addParameter(p, 'backgroundHeaderColor', d, @(x) ccTools.validators.mustBeColor(x, 'all'))
+            case 'transparentHeader';     addParameter(p, 'transparentHeader',     d, @(x) ccTools.validators.mustBeColor(x, 'all'))
 
             % Border
             case 'borderRadius';          addParameter(p, 'borderRadius',          d, @(x) ccTools.validators.mustBeCSSProperty(x, 'border-radius'))

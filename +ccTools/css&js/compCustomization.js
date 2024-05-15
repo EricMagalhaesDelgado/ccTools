@@ -1,6 +1,4 @@
 function setup(htmlComponent) {
-    // htmlComponent.sendEventToMATLAB("Startup", JSON.stringify({name:"NoError", message:"No error"}));
-
     htmlComponent.addEventListener("delProgressDialog", function() {
         try {
             window.parent.parent.document.getElementsByClassName("mw-busyIndicator")[0].remove();
@@ -39,7 +37,7 @@ function setup(htmlComponent) {
         let objValue    = event.Data.Value.toString();
         let objHandle   = window.parent.document.querySelector(`div[data-tag="${objDataTag}"]`);
         
-        if (!objHandle || !validation(objClass, objProperty)) {
+        if (!objHandle) {
             return;
         }
         
@@ -67,11 +65,25 @@ function setup(htmlComponent) {
                         case "backgroundHeaderColor":
                             objHandle.style.backgroundColor = "transparent";
                             objHandle.children[1].style.backgroundColor = objValue;
-                            break;                          
+                            break;
+                        case "transparentHeader":
+                            objHandle.style.border = "none";
+                            objHandle.style.backgroundColor = "transparent";
+                            
+                            objHandle.children[1].style.border = "none";
+                            objHandle.children[1].style.backgroundColor = "transparent";                            
+
+                            var childElements = objHandle.children[1].querySelectorAll("*");
+
+                            childElements.forEach(function(child) {
+                                child.style.border = "none";
+                                child.style.backgroundColor = "transparent";                                
+                            });
+                            break;
                         case "borderRadius":
                         case "borderWidth":
                         case "borderColor":
-                            objHandle.children[0].style[objProperty] = objValue;
+                            objHandle.style[objProperty] = objValue;
                             break;
                         case "fontFamily":
                         case "fontStyle":
@@ -150,7 +162,7 @@ function setup(htmlComponent) {
                     }
             }
         } catch (ME) {
-            // htmlComponent.sendEventToMATLAB("JSError", JSON.stringify(ME, ['name', 'message']));
+            // console.log(ME)
         }
     });
 }
@@ -173,48 +185,4 @@ function keyDownListener(event, htmlComponent, objDataName, objHandle) {
     if (keyEvents.includes(event.key)) {
         htmlComponent.sendEventToMATLAB(event.key, objDataName);
     }
-}
-
-function validation(objClass, objProperty) {
-    let propList = null;
-
-    switch (objClass) {
-        case "matlab.ui.container.ButtonGroup":
-        case "matlab.ui.container.CheckBoxTree":
-        case "matlab.ui.container.Panel":
-        case "matlab.ui.container.Tree":
-        case "matlab.ui.control.CheckBox":
-            propList = ["backgroundColor", "borderRadius", "borderWidth", "borderColor"];
-            break;
-
-        case "matlab.ui.container.GridLayout":
-        case "matlab.ui.container.Tab":
-            propList = ["backgroundColor"];
-            break;
-
-        case "matlab.ui.container.TabGroup":
-            propList = ["backgroundColor", "backgroundHeaderColor", "borderRadius", "borderWidth", "borderColor", "fontFamily", "fontStyle", "fontWeight", "fontSize", "color"];
-            break;
-
-        case "matlab.ui.control.Button":
-        case "matlab.ui.control.DropDown":
-        case "matlab.ui.control.EditField":
-        case "matlab.ui.control.ListBox":
-        case "matlab.ui.control.NumericEditField":
-        case "matlab.ui.control.StateButton":
-            propList = ["borderRadius", "borderWidth", "borderColor"];
-            break;
-
-        case "matlab.ui.control.TextArea":
-            propList = ["backgroundColor","borderRadius", "borderWidth", "borderColor", "textAlign"];
-            break;
-
-        case "matlab.ui.control.Table":
-            propList = ["backgroundColor", "backgroundHeaderColor", "borderRadius", "borderWidth", "borderColor", "textAlign", "paddingTop", "fontFamily", "fontStyle", "fontWeight", "fontSize", "color"];
-            break;
-
-        default:
-            return false;
-    }
-    return propList.includes(objProperty);
 }
