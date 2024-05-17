@@ -37,12 +37,10 @@ function setup(htmlComponent) {
     
             var s = document.createElement('style');
             s.type = 'text/css';
-            s.appendChild(document.createTextNode(className + " { " + classAttributes + " }"));
-    
-            window.parent.document.head.appendChild(s); 
-            console.log("Estilo adicionado: ", className, classAttributes);
+            s.appendChild(document.createTextNode(className + " { " + classAttributes + " }"));    
+            window.parent.document.head.appendChild(s);
         } catch (ME) {
-            console.error("Erro ao adicionar estilo: ", ME);
+            // console.log(ME)
         }
     });
         
