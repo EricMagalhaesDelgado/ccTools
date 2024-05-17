@@ -29,6 +29,22 @@ function setup(htmlComponent) {
             // console.log(ME)
         }
     });
+
+    htmlComponent.addEventListener("htmlClassCustomization", function(event) {
+        try {
+            var className       = event.Data.className.toString();
+            var classAttributes = event.Data.classAttributes.toString();
+    
+            var s = document.createElement('style');
+            s.type = 'text/css';
+            s.appendChild(document.createTextNode(className + " { " + classAttributes + " }"));
+    
+            window.parent.document.head.appendChild(s); 
+            console.log("Estilo adicionado: ", className, classAttributes);
+        } catch (ME) {
+            console.error("Erro ao adicionar estilo: ", ME);
+        }
+    });
         
     htmlComponent.addEventListener("compCustomization", function(event) {
         let objClass    = event.Data.Class.toString();
