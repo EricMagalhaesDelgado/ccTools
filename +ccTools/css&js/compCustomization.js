@@ -197,6 +197,7 @@ function setup(htmlComponent) {
                 case "matlab.ui.container.CheckBoxTree":
                 case "matlab.ui.container.Panel":
                 case "matlab.ui.container.Tree":
+                case "matlab.ui.container.Label":
                     objHandle.style[objProperty] = objValue;
                     objHandle.children[0].style[objProperty] = objValue;
                     break;

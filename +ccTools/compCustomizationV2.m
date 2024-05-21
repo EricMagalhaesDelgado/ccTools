@@ -62,6 +62,9 @@ function compCustomizationV2(jsBackDoor, comp, varargin)
                                       'borderRadius', 'borderWidth', 'borderColor', ...
                                       'textAlign'}, varargin{:});
 
+        case 'matlab.ui.control.Label'
+            propStruct = InputParser({'textAlign'}, varargin{:});
+
         case 'matlab.ui.control.CheckBox'
             propStruct = InputParser({'backgroundColor',                            ...
                                       'borderRadius', 'borderWidth', 'borderColor'}, varargin{:});
